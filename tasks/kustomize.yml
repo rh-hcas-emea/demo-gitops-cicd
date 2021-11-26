@@ -1,0 +1,23 @@
+apiVersion: tekton.dev/v1beta1
+kind: Task
+metadata:
+  name: kustomize
+spec:
+  workspaces:
+  - name: source
+  params:
+  - name: args
+    type: string
+    default: version
+  - name: path
+    type: string
+    default: .
+  - name: kustomize-image
+    type: string
+    default: k8s.gcr.io/kustomize/kustomize:v4.5.2
+  steps:
+  - name: kustomize
+    image: $(params.kustomize-image)
+    script: |
+      cd $(params.path)
+      kustomize $(params.args)
