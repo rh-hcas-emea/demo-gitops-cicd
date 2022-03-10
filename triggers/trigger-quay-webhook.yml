@@ -1,0 +1,9 @@
+apiVersion: triggers.tekton.dev/v1beta1
+kind: Trigger
+metadata:
+  name: quay-webhook
+spec:
+  bindings:
+    - ref: quay-repo-push
+  template:
+    ref: quay-deploy

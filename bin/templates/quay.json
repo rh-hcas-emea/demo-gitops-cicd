@@ -1,0 +1,8 @@
+{
+	"name": "${NAME}",
+	"repository": "${NAMESPACE}/${NAME}",
+	"namespace": "${NAMESPACE}",
+	"docker_url": "quay.io/${NAMESPACE}/${NAME}",
+	"homepage": "https://quay.io/repository/${NAMESPACE}/${NAME}",
+	"updated_tags": ["${TAG}"]
+}

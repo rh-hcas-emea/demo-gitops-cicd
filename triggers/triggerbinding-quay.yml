@@ -1,0 +1,16 @@
+apiVersion: triggers.tekton.dev/v1beta1
+kind: TriggerBinding
+metadata:
+  name: quay-repo-push
+spec:
+  params:
+    - name: name
+      value: $(body.name)
+    - name: namespace
+      value: $(body.namespace)
+    - name: image
+      value: $(body.repository)
+    - name: image-url
+      value: $(body.docker_url)
+    - name: tags
+      value: $(body.updated_tags)
