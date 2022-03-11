@@ -6,11 +6,15 @@ spec:
   params:
     - name: name
     - name: image-url
+    - name: tag
   resourcetemplates:
     - apiVersion: tekton.dev/v1beta1
       kind: PipelineRun
       metadata:
-        generateName: deploy-$(tt.params.name)-
+        generateName: deploy-$(tt.params.name)-$(tt.params.tag)-
+        labels:
+          app: $(tt.params.name)
+          environment: $(tt.params.tag)
       spec:
         pipelineRef:
           name: deploy
@@ -21,6 +25,10 @@ spec:
             value: $(tt.params.image-url)
           - name: git-url
             value: git@github.com:tom-stockwell/$(tt.params.name)-k8s.git
+          - name: environment
+            value: $(tt.params.tag)
+          - name: image-tag
+            value: $(tt.params.tag)
         workspaces:
           - name: scratch
             emptyDir: {}

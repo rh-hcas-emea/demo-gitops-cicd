@@ -12,7 +12,7 @@ TEMPLATE_FILE="$SCRIPT_DIR/templates/quay.json"
 
 export NAME=greeting-ui
 export NAMESPACE=tstockwell
-export TAG=dev
+export TAG=${1:-dev}
 
 body=$(cat "$TEMPLATE_FILE" | envsubst)
 

@@ -56,19 +56,6 @@ spec:
     - name: revision
       value: $(params.git-branch)
 
-  - name: tag-image
-    taskRef:
-      kind: ClusterTask
-      name: skopeo-copy
-    workspaces:
-    - name: images-url
-      workspace: scratch
-    params:
-    - name: srcImageURL
-      value: docker://$(params.image-url):$(params.image-tag)
-    - name: destImageURL
-      value: docker://$(params.image-url):$(params.environment)
-
   - name: update-image-ref
     taskRef:
       name: kustomize
@@ -109,7 +96,7 @@ spec:
 
   - name: argo-sync
     taskRef:
-      name: argocd-sync
+      name: argocd-task-sync-and-wait
     runAfter:
     - git-commit
     params:
@@ -122,3 +109,40 @@ spec:
     - name: flags
       value: --insecure
 
+  - name: tag-image-stage
+    taskRef:
+      kind: ClusterTask
+      name: skopeo-copy
+    runAfter:
+      - argo-sync
+    when:
+      - input: $(params.environment)
+        operator: in
+        values: ['dev']
+    workspaces:
+      - name: images-url
+        workspace: scratch
+    params:
+      - name: srcImageURL
+        value: docker://$(params.image-url):$(params.image-tag)
+      - name: destImageURL
+        value: docker://$(params.image-url):stage
+
+  - name: tag-image-prod
+    taskRef:
+      kind: ClusterTask
+      name: skopeo-copy
+    runAfter:
+      - argo-sync
+    when:
+      - input: $(params.environment)
+        operator: in
+        values: ['stage']
+    workspaces:
+      - name: images-url
+        workspace: scratch
+    params:
+      - name: srcImageURL
+        value: docker://$(params.image-url):$(params.image-tag)
+      - name: destImageURL
+        value: docker://$(params.image-url):prod

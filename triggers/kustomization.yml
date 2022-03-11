@@ -5,5 +5,5 @@ resources:
   - eventlistener.yml
   - route.yml
   - trigger-quay-webhook.yml
-  - triggerbinding-quay.yml
+  - triggerbinding-quay-repo-push.yml
   - triggertemplate-quay-deploy.yml

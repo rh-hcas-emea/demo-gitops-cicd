@@ -1,0 +1,9 @@
+apiVersion: triggers.tekton.dev/v1beta1
+kind: TriggerBinding
+metadata:
+  name: quay-custom
+spec:
+  params:
+    - name: tag
+      value: $(extensions.tag)
+

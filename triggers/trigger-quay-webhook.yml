@@ -3,6 +3,12 @@ kind: Trigger
 metadata:
   name: quay-webhook
 spec:
+  interceptors:
+    - ref:
+        name: cel
+      params:
+        - name: "filter"
+          value: "body.updated_tags[0] in ['dev', 'stage', 'prod']"
   bindings:
     - ref: quay-repo-push
   template:

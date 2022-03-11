@@ -14,3 +14,5 @@ spec:
       value: $(body.docker_url)
     - name: tags
       value: $(body.updated_tags)
+    - name: tag
+      value: $(body.updated_tags[0])
