@@ -35,6 +35,30 @@ spec:
     default: main
     description: Branch of the git repository
 
+  - name: git-username
+    type: string
+    default: ci
+    description: Username of the git committer
+
+  - name: git-email
+    type: string
+    default: ci@example.com
+    description: Email of the git committer
+
+  - name: git-primary-message
+    type: string
+    default: 'Deploy to '
+    description: |
+      Prefix for first line of the commit message.
+      Environment name will be apppended.
+
+  - name: git-secondary-message
+    type: string
+    default: '- image: '
+    description: |
+      Prefix for second line of the commit message.
+      Image name will be apppended.
+
   tasks:
   - name: image-digest
     taskRef:
@@ -67,7 +91,11 @@ spec:
       workspace: source
     params:
     - name: args
-      value: edit set image $(params.image-url)@$(tasks.image-digest.results.digest)
+      value:
+        - edit
+        - set
+        - image
+        - "$(params.image-url)@$(tasks.image-digest.results.digest)"
     - name: path
       value: $(workspaces.source.path)/environments/$(params.environment)
 
@@ -84,12 +112,13 @@ spec:
       workspace: scratch
     params:
     - name: GIT_USER_NAME
-      value: ci
+      value: $(params.git-username)
     - name: GIT_USER_EMAIL
-      value: ci@example.com
+      value: $(params.git-email)
     - name: GIT_SCRIPT
       value: |
-        git commit -am 'Deploy to $(params.environment)' -m '$(params.image-url)@$(tasks.image-digest.results.digest)' || true
+        git commit -am '$(params.git-primary-message)$(params.environment)' \
+          -m '$(params.git-secondary-message)$(params.image-url)@$(tasks.image-digest.results.digest)' || true
         git tag $(params.environment)
         git push origin HEAD:$(params.git-branch)
         git push origin --tags --force

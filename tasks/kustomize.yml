@@ -4,20 +4,21 @@ metadata:
   name: kustomize
 spec:
   workspaces:
-  - name: source
+    - name: source
   params:
-  - name: args
-    type: string
-    default: version
-  - name: path
-    type: string
-    default: .
-  - name: kustomize-image
-    type: string
-    default: k8s.gcr.io/kustomize/kustomize:v4.5.2
+    - name: args
+      type: array
+      default:
+      - version
+    - name: path
+      type: string
+      default: .
+    - name: kustomize-image
+      type: string
+      default: k8s.gcr.io/kustomize/kustomize:v4.5.2
   steps:
-  - name: kustomize
-    image: $(params.kustomize-image)
-    script: |
-      cd $(params.path)
-      kustomize $(params.args)
+    - name: kustomize
+      image: $(params.kustomize-image)
+      workingDir: $(params.path)
+      args:
+        - "$(params.args[*])"

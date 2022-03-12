@@ -1,0 +1,15 @@
+{
+	"ref": "refs/head/${BRANCH}",
+	"head_commit": {
+		"id": "${COMMIT}",
+		"message": "${COMMIT_MSG}"
+	},
+	"repository": {
+		"name": "${NAME}",
+		"url": "https://github.com/tom-stockwell/${NAME}.git"
+	},
+	"pusher": {
+		"name": "Tom Stockwell",
+		"email": "2060486+stocky37@users.noreply.github.com"
+	}
+}

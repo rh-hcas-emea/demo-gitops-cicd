@@ -4,4 +4,6 @@ namespace: example-app-cicd
 resources:
 - image-digest.yml
 - kustomize.yml
+- npm.yml
+- script.yml
 - https://raw.githubusercontent.com/tektoncd/catalog/main/task/argocd-task-sync-and-wait/0.1/argocd-task-sync-and-wait.yaml

@@ -1,0 +1,94 @@
+apiVersion: tekton.dev/v1beta1
+kind: Pipeline
+metadata:
+  name: ci-react
+spec:
+  workspaces:
+    - name: source
+
+  params:
+    - name: git-url
+      type: string
+      description: URL of the git repository to update
+
+    - name: git-revision
+      type: string
+      default: main
+      description: Git revision to checkout
+
+    - name: image-url
+      type: string
+      description: Image url to deploy
+
+    - name: image-tag
+      type: string
+      default: latest
+      description: Image tag to deploy
+
+    - name: dev-environment
+      type: string
+      default: dev
+      description: Name of the dev environment
+
+  tasks:
+    - name: clean
+      taskRef:
+        name: script
+      workspaces:
+        - name: workspace
+          workspace: source
+      params:
+        - name: script
+          value: rm -rf node_modules
+        - name: workingDir
+          value: $(workspaces.workspace.path)
+
+    - name: clone
+      taskRef:
+        name: git-clone
+        kind: ClusterTask
+      runAfter: ['clean']
+      workspaces:
+        - name: output
+          workspace: source
+      params:
+        - name: url
+          value: $(params.git-url)
+        - name: revision
+          value: $(params.git-revision)
+
+    - name: install-deps
+      taskRef:
+        name: npm
+      runAfter: ['clone']
+      workspaces:
+        - name: source
+          workspace: source
+      params:
+        - name: args
+          value: ['ci', '--verbose', '--no-audit']
+
+    - name: test
+      taskRef:
+        name: npm
+      runAfter: ['install-deps']
+      workspaces:
+        - name: source
+          workspace: source
+      params:
+        - name: args
+          value: ['test']
+
+    - name: build
+      taskRef:
+        name: buildah
+        kind: ClusterTask
+      runAfter: ['test']
+      workspaces:
+        - name: source
+          workspace: source
+      params:
+        - name: DOCKERFILE
+          value: ./Containerfile
+        - name: IMAGE
+          value: $(params.image-url):$(params.image-tag)

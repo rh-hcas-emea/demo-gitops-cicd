@@ -8,7 +8,13 @@ spec:
         name: cel
       params:
         - name: "filter"
-          value: "body.updated_tags[0] in ['dev', 'stage', 'prod']"
+          value: >-
+            has(body.name)
+            && has(body.repository)
+            && has(body.namespace)
+            && has(body.docker_url)
+            && has(body.updated_tags)
+            && body.updated_tags[0] in ['dev', 'stage', 'prod']
   bindings:
     - ref: quay-repo-push
   template:

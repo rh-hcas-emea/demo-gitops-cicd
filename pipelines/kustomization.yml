@@ -3,3 +3,4 @@ kind: Kustomization
 namespace: example-app-cicd
 resources:
   - deploy.yml
+  - ci-react.yml
