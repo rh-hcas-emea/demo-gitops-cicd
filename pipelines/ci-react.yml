@@ -5,7 +5,7 @@ metadata:
 spec:
   workspaces:
     - name: source
-
+    - name: scratch
   params:
     - name: git-url
       type: string
@@ -25,10 +25,10 @@ spec:
       default: latest
       description: Image tag to deploy
 
-    - name: dev-environment
+    - name: env-dev
       type: string
       default: dev
-      description: Name of the dev environment
+      description: Name/suffix for the development environment
 
   tasks:
     - name: clean
@@ -83,7 +83,6 @@ spec:
       taskRef:
         name: buildah
         kind: ClusterTask
-      runAfter: ['test']
       workspaces:
         - name: source
           workspace: source
@@ -92,3 +91,20 @@ spec:
           value: ./Containerfile
         - name: IMAGE
           value: $(params.image-url):$(params.image-tag)
+
+    - name: tag-image-dev
+      taskRef:
+        kind: ClusterTask
+        name: skopeo-copy
+      runAfter:
+        - build
+        - test
+      workspaces:
+        - name: images-url
+          workspace: scratch
+      params:
+        - name: srcImageURL
+          value: docker://$(params.image-url):$(params.image-tag)
+        - name: destImageURL
+          value: docker://$(params.image-url):$(params.env-dev)
+

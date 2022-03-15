@@ -28,3 +28,5 @@ spec:
           - name: source
             persistentVolumeClaim:
               claimName: greeting-ui-source
+          - name: scratch
+            emptyDir: {}
