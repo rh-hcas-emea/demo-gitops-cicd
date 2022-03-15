@@ -22,3 +22,6 @@ spec:
       workingDir: $(params.path)
       args:
         - "$(params.args[*])"
+      script: |
+        set -x
+        kustomize $@

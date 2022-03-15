@@ -16,4 +16,4 @@ spec:
   - name: inspect
     image: $(params.skopeo-image)
     script: |
-      skopeo inspect $(params.image) --format "{{.Digest}}" > '$(results.digest.path)'
+      skopeo inspect $(params.image) --format "{{.Digest}}" | tee '$(results.digest.path)'
