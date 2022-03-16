@@ -16,6 +16,10 @@ spec:
     type: string
     description: Image url to deploy
 
+  - name: image-namespace
+    type: string
+    description: Image namespace
+
   - name: image-tag
     type: string
     default: latest
@@ -73,6 +77,11 @@ spec:
     type: string
     default: prod
     description: Name/suffix used for the production environment
+
+  - name: mock-webhooks
+    type: string
+    default: 'false'
+    description: Toggle on webhook mocks for systems where the needed webhooks will be unavailable
 
   tasks:
   - name: image-digest
@@ -172,6 +181,23 @@ spec:
       - name: destImageURL
         value: docker://$(params.image-url):$(params.env-stage)
 
+  - name: mock-webhook-stage
+    taskRef:
+      name: quay-webhook
+    runAfter:
+      - tag-image-stage
+    when:
+      - input: $(params.mock-webhooks)
+        operator: in
+        values: ['true']
+    params:
+      - name: image-name
+        value: $(params.app-name)
+      - name: image-namespace
+        value: $(params.image-namespace)
+      - name: image-tag
+        value: $(params.env-stage)
+
   - name: tag-image-prod
     taskRef:
       kind: ClusterTask
@@ -190,3 +216,20 @@ spec:
         value: docker://$(params.image-url):$(params.image-tag)
       - name: destImageURL
         value: docker://$(params.image-url):$(params.env-prod)
+
+  - name: mock-webhook-prod
+    taskRef:
+      name: quay-webhook
+    runAfter:
+      - tag-image-prod
+    when:
+      - input: $(params.mock-webhooks)
+        operator: in
+        values: ['true']
+    params:
+      - name: image-name
+        value: $(params.app-name)
+      - name: image-namespace
+        value: $(params.image-namespace)
+      - name: image-tag
+        value: $(params.env-prod)

@@ -5,8 +5,9 @@ metadata:
 spec:
   params:
     - name: name
-    - name: image-url
     - name: tag
+    - name: image-url
+    - name: image-namespace
   resourcetemplates:
     - apiVersion: tekton.dev/v1beta1
       kind: PipelineRun
@@ -23,12 +24,17 @@ spec:
             value: $(tt.params.name)
           - name: image-url
             value: $(tt.params.image-url)
+          - name: image-namespace
+            value: $(tt.params.image-namespace)
           - name: git-url
             value: git@github.com:tom-stockwell/$(tt.params.name)-k8s.git
           - name: environment
             value: $(tt.params.tag)
           - name: image-tag
             value: $(tt.params.tag)
+          #  only for demo purposes on a private cluster
+          - name: mock-webhooks
+            value: 'true'
         workspaces:
           - name: scratch
             emptyDir: {}

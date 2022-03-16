@@ -7,6 +7,10 @@ spec:
     - name: source
     - name: scratch
   params:
+    - name: app-name
+      type: string
+      description: Name of the application
+
     - name: git-url
       type: string
       description: URL of the git repository to update
@@ -25,10 +29,19 @@ spec:
       default: latest
       description: Image tag to deploy
 
+    - name: image-namespace
+      type: string
+      description: Namespace of the image
+
     - name: env-dev
       type: string
       default: dev
       description: Name/suffix for the development environment
+
+    - name: mock-webhooks
+      type: string
+      default: 'true'
+      description: Toggle on webhook mocks for systems where the needed webhooks will be unavailable
 
   tasks:
     - name: clean
@@ -108,3 +121,19 @@ spec:
         - name: destImageURL
           value: docker://$(params.image-url):$(params.env-dev)
 
+    - name: mock-webhook
+      taskRef:
+        name: quay-webhook
+      runAfter:
+        - tag-image-dev
+      when:
+        - input: $(params.mock-webhooks)
+          operator: in
+          values: ['true']
+      params:
+        - name: image-name
+          value: $(params.app-name)
+        - name: image-namespace
+          value: $(params.image-namespace)
+        - name: image-tag
+          value: $(params.env-dev)

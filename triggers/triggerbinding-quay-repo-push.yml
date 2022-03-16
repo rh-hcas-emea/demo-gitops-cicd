@@ -6,12 +6,12 @@ spec:
   params:
     - name: name
       value: $(body.name)
-    - name: namespace
-      value: $(body.namespace)
     - name: image
       value: $(body.repository)
     - name: image-url
       value: $(body.docker_url)
+    - name: image-namespace
+      value: $(body.namespace)
     - name: tags
       value: $(body.updated_tags)
     - name: tag
