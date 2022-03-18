@@ -1,7 +1,7 @@
 apiVersion: triggers.tekton.dev/v1beta1
 kind: TriggerTemplate
 metadata:
-  name: ci-react
+  name: ci-quarkus
 spec:
   params:
     - name: git-revision
@@ -16,7 +16,7 @@ spec:
           app: $(tt.params.git-repo-name)
       spec:
         pipelineRef:
-          name: ci-react
+          name: ci-quarkus
         params:
           - name: app-name
             value: $(tt.params.git-repo-name)

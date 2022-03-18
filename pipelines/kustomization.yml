@@ -4,3 +4,4 @@ namespace: example-app-cicd
 resources:
   - deploy.yml
   - ci-react.yml
+  - ci-quarkus.yml

@@ -4,8 +4,10 @@ namespace: example-app-cicd
 resources:
   - eventlistener.yml
   - route.yml
-  - trigger-quay-webhook.yml
-  - trigger-github-webhook.yml
-  - triggerbinding-quay-repo-push.yml
-  - triggertemplate-quay-deploy.yml
+  - trigger-quay-push.yml
+  - trigger-github-push-react.yml
+  - trigger-github-push-quarkus.yml
+  - triggerbinding-quay-push.yml
+  - triggertemplate-ci-quarkus.yml
   - triggertemplate-ci-react.yml
+  - triggertemplate-deploy.yml

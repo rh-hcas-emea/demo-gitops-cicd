@@ -1,7 +1,7 @@
 apiVersion: triggers.tekton.dev/v1beta1
 kind: Trigger
 metadata:
-  name: github-webhook
+  name: github-push-react
 spec:
   interceptors:
     - ref:
@@ -13,6 +13,12 @@ spec:
             secretKey: secret
         - name: "eventTypes"
           value: ["push"]
+    - ref:
+        name: cel
+      params:
+        - name: "filter"
+          value: >-
+            body.repository.name == "greeting-ui"
   bindings:
     - ref: github-push
       kind: ClusterTriggerBinding

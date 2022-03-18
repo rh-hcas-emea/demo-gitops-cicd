@@ -121,7 +121,7 @@ spec:
         - image
         - "$(params.image-url)@$(tasks.image-digest.results.digest)"
     - name: path
-      value: $(workspaces.source.path)/environments/$(params.environment)
+      value: $(workspaces.source.path)/overlays/$(params.environment)
 
   - name: git-commit
     taskRef:

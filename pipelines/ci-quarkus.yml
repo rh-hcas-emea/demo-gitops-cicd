@@ -1,7 +1,7 @@
 apiVersion: tekton.dev/v1beta1
 kind: Pipeline
 metadata:
-  name: ci-react
+  name: ci-quarkus
 spec:
   workspaces:
     - name: source
@@ -46,13 +46,13 @@ spec:
   tasks:
     - name: clean
       taskRef:
-        name: script-1001
+        name: script-185
       workspaces:
         - name: workspace
           workspace: source
       params:
         - name: script
-          value: rm -rf node_modules
+          value: rm -rf target
         - name: workingDir
           value: $(workspaces.workspace.path)
 
@@ -70,27 +70,21 @@ spec:
         - name: revision
           value: $(params.git-revision)
 
-    - name: install-deps
+    - name: test
       taskRef:
-        name: npm
+        name: maven
+        kind: ClusterTask
       runAfter: ['clone']
       workspaces:
         - name: source
           workspace: source
+        - name: maven-settings
+          workspace: scratch
       params:
-        - name: args
-          value: ['ci', '--verbose', '--no-audit']
-
-    - name: test
-      taskRef:
-        name: npm
-      runAfter: ['install-deps']
-      workspaces:
-        - name: source
-          workspace: source
-      params:
-        - name: args
-          value: ['test']
+        - name: GOALS
+          value: ['verify']
+        - name: MAVEN_IMAGE
+          value: registry.access.redhat.com/ubi8/openjdk-17
 
     - name: build
       taskRef:

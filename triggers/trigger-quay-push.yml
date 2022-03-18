@@ -1,7 +1,7 @@
 apiVersion: triggers.tekton.dev/v1beta1
 kind: Trigger
 metadata:
-  name: quay-webhook
+  name: quay-push-deploy
 spec:
   interceptors:
     - ref:
@@ -10,11 +10,11 @@ spec:
         - name: "filter"
           value: >-
             has(body.name)
-            && has(body.repository)
-            && has(body.namespace)
-            && has(body.docker_url)
-            && has(body.updated_tags)
-            && body.updated_tags[0] in ['dev', 'stage', 'prod']
+              && has(body.repository)
+              && has(body.namespace)
+              && has(body.docker_url)
+              && has(body.updated_tags)
+              && body.updated_tags[0] in ['dev', 'stage', 'prod']
   bindings:
     - ref: quay-repo-push
   template:

@@ -1,7 +1,7 @@
 apiVersion: tekton.dev/v1beta1
 kind: Task
 metadata:
-  name: script
+  name: script-1001
 spec:
   workspaces:
     - name: workspace
