@@ -12,15 +12,15 @@ spec:
     - name: image-tag
       type: string
       default: latest
-    - name: webhook-url
+    - name: url
       type: string
       default: http://el-greeting-cd-listener:8080
-    - name: step-image
+    - name: script-image
       type: string
       default: registry.access.redhat.com/ubi8-minimal
   steps:
     - name: script
-      image: $(params.step-image)
+      image: $(params.script-image)
       script: |
         curl -X POST \
           -H "Content-Type: application/json" \
@@ -31,4 +31,4 @@ spec:
             "docker_url": "quay.io/$(params.image-namespace)/$(params.image-name)",
             "homepage": "https://quay.io/repository/$(params.image-namespace)/$(params.image-name)",
             "updated_tags": ["$(params.image-tag)"]
-          }' "$(params.webhook-url)"
+          }' "$(params.url)"

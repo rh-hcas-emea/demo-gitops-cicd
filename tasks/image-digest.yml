@@ -8,7 +8,7 @@ spec:
     type: string
   - name: skopeo-image
     type: string
-    default: registry.redhat.io/rhel8/skopeo@sha256:6d20ab55415a1a0ca198ffa3be2dac82d19526ab3a290fa2fa5c8d2c5d2eefd0
+    default: registry.access.redhat.com/ubi8/skopeo
   results:
   - name: digest
     description: The digest of the given image

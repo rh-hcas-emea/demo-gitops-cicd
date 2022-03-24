@@ -54,14 +54,14 @@ spec:
     default: 'Deploy to '
     description: |
       Prefix for first line of the commit message.
-      Environment name will be apppended.
+      Environment name will be appended.
 
   - name: git-secondary-message
     type: string
     default: '- image: '
     description: |
       Prefix for second line of the commit message.
-      Image name will be apppended.
+      Image name will be appended.
 
   - name: env-dev
     type: string
@@ -91,7 +91,7 @@ spec:
     - name: image
       value: docker://$(params.image-url):$(params.image-tag)
 
-  - name: git-clone
+  - name: clone
     taskRef:
       name: git-clone
       kind: ClusterTask
@@ -108,7 +108,7 @@ spec:
     taskRef:
       name: kustomize
     runAfter:
-    - git-clone
+    - clone
     - image-digest
     workspaces:
     - name: source
@@ -123,7 +123,7 @@ spec:
     - name: path
       value: $(workspaces.source.path)/overlays/$(params.environment)
 
-  - name: git-commit
+  - name: commit
     taskRef:
       name: git-cli
       kind: ClusterTask
@@ -151,7 +151,7 @@ spec:
     taskRef:
       name: argocd-task-sync-and-wait
     runAfter:
-    - git-commit
+    - commit
     params:
     - name: argocd-version
       value: v2.2.5
