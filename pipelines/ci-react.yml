@@ -52,7 +52,7 @@ spec:
           workspace: source
       params:
         - name: script
-          value: rmscratch -rf node_modules
+          value: rm -rf node_modules
         - name: workingDir
           value: $(workspaces.workspace.path)
 
