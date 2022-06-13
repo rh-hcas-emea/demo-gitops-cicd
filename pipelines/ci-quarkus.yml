@@ -5,6 +5,7 @@ metadata:
 spec:
   workspaces:
     - name: source
+    - name: k8s-source
     - name: scratch
   params:
     - name: app-name
@@ -13,35 +14,40 @@ spec:
 
     - name: git-url
       type: string
-      description: URL of the git repository to update
+      description: URL of the git repository containing application source code
 
     - name: git-revision
       type: string
       default: main
-      description: Git revision to checkout
+      description: Git revision to checkout application source code
 
     - name: image-url
       type: string
-      description: Image url to deploy
+      description: Container image URL to publish
 
     - name: image-tag
       type: string
       default: latest
-      description: Image tag to deploy
+      description: Container image tag to publish
 
-    - name: image-namespace
+    - name: k8s-git-url
       type: string
-      description: Namespace of the image
+      description: URL of the git repository containing k8s manifests
 
-    - name: env-dev
+    - name: k8s-git-branch
       type: string
-      default: dev
-      description: Name/suffix for the development environment
+      default: main
+      description: Git revision to checkout k8s manifests
 
-    - name: mock-webhooks
+    - name: k8s-git-dir
       type: string
-      default: 'true'
-      description: Toggle on webhook mocks for systems where the needed webhooks will be unavailable
+      default: .
+      description: Directory to update kustomize in
+
+#    - name: mock-webhooks
+#      type: string
+#      default: 'true'
+#      description: Toggle on webhook mocks for systems where the needed webhooks will be unavailable
 
   tasks:
     - name: clean
@@ -82,7 +88,7 @@ spec:
           workspace: scratch
       params:
         - name: GOALS
-          value: ['verify']
+          value: ['-B', 'verify']
         - name: MAVEN_IMAGE
           value: registry.access.redhat.com/ubi8/openjdk-17
 
@@ -100,35 +106,74 @@ spec:
         - name: IMAGE
           value: $(params.image-url):$(params.image-tag)
 
-    - name: tag-image-dev
+    - name: k8s-clone
       taskRef:
+        name: git-clone
         kind: ClusterTask
-        name: skopeo-copy
+      workspaces:
+        - name: output
+          workspace: k8s-source
+      params:
+        - name: url
+          value: $(params.k8s-git-url)
+        - name: revision
+          value: $(params.k8s-git-branch)
+
+    - name: update-image-dev
+      taskRef:
+        name: kustomize
       runAfter:
+        - k8s-clone
         - build
         - test
       workspaces:
-        - name: images-url
+        - name: source
+          workspace: k8s-source
+      params:
+        - name: args
+          value:
+            - edit
+            - set
+            - image
+            - "$(params.image-url)@$(tasks.build.results.IMAGE_DIGEST)"
+        - name: path
+          value: $(workspaces.source.path)/$(params.k8s-git-dir)
+
+    - name: k8s-commit
+      taskRef:
+        name: git-cli
+        kind: ClusterTask
+      runAfter:
+        - update-image-dev
+      workspaces:
+        - name: source
+          workspace: k8s-source
+        - name: input
           workspace: scratch
       params:
-        - name: srcImageURL
-          value: docker://$(params.image-url):$(params.image-tag)
-        - name: destImageURL
-          value: docker://$(params.image-url):$(params.env-dev)
+        - name: GIT_USER_NAME
+          value: ci
+        - name: GIT_USER_EMAIL
+          value: ci@example.com
+        - name: GIT_SCRIPT
+          value: |
+            git commit -am 'Promote to dev' \
+              -m '- image: $(params.image-url)@$(tasks.build.results.IMAGE_DIGEST)' || true
+            git push origin HEAD:$(params.k8s-git-branch)
 
-    - name: mock-webhook
-      taskRef:
-        name: quay-webhook
-      runAfter:
-        - tag-image-dev
-      when:
-        - input: $(params.mock-webhooks)
-          operator: in
-          values: ['true']
-      params:
-        - name: image-name
-          value: $(params.app-name)
-        - name: image-namespace
-          value: $(params.image-namespace)
-        - name: image-tag
-          value: $(params.env-dev)
+#    - name: mock-webhook
+#      taskRef:
+#        name: quay-webhook
+#      runAfter:
+#        - tag-image-dev
+#      when:
+#        - input: $(params.mock-webhooks)
+#          operator: in
+#          values: ['true']
+#      params:
+#        - name: image-name
+#          value: $(params.app-name)
+#        - name: image-namespace
+#          value: $(params.image-namespace)
+#        - name: image-tag
+#          value: $(params.env-dev)

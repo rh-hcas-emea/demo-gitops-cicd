@@ -26,8 +26,10 @@ spec:
             value: $(tt.params.git-revision)
           - name: image-url
             value: quay.io/tstockwell/$(tt.params.git-repo-name)
-          - name: image-namespace
-            value: tstockwell
+          - name: k8s-git-url
+            value: git@github.com:tom-stockwell/$(tt.params.git-repo-name)-k8s.git
+          - name: k8s-git-dir
+            value: overlays/dev
           #  only for demo purposes on a private cluster
           - name: mock-webhooks
             value: 'true'
@@ -35,5 +37,14 @@ spec:
           - name: source
             persistentVolumeClaim:
               claimName: $(tt.params.git-repo-name)-source
+          - name: k8s-source
+            volumeClaimTemplate:
+              spec:
+                accessModes:
+                  - ReadWriteOnce
+                resources:
+                  requests:
+                    storage: 1Gi
           - name: scratch
             emptyDir: {}
+

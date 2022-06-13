@@ -6,4 +6,4 @@ spec:
   serviceAccountName: pipeline
   namespaceSelector:
     matchNames:
-      - examples-cicd
+      - demo-gitops-cicd-cicd

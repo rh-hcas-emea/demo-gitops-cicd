@@ -6,7 +6,7 @@ metadata:
     app.kubernetes.io/part-of: Triggers
     eventlistener: greeting-cd-listener
 spec:
-  host: webhooks.examples-cicd.apps.paas.lab.stocky37.dev
+  host: webhooks.demo-gitops-cicd-cicd.apps.paas.lab.stocky37.dev
   port:
     targetPort: http-listener
   to:
