@@ -39,7 +39,7 @@ spec:
       default: main
       description: Git revision to checkout k8s manifests
 
-    - name: k8s-git-dir
+    - name: kustomize-path
       type: string
       default: .
       description: Directory to update kustomize in
@@ -121,7 +121,7 @@ spec:
 
     - name: update-image-dev
       taskRef:
-        name: kustomize
+        name: update-image
       runAfter:
         - k8s-clone
         - build
@@ -130,36 +130,14 @@ spec:
         - name: source
           workspace: k8s-source
       params:
-        - name: args
-          value:
-            - edit
-            - set
-            - image
-            - "$(params.image-url)@$(tasks.build.results.IMAGE_DIGEST)"
-        - name: path
-          value: $(workspaces.source.path)/$(params.k8s-git-dir)
-
-    - name: k8s-commit
-      taskRef:
-        name: git-cli
-        kind: ClusterTask
-      runAfter:
-        - update-image-dev
-      workspaces:
-        - name: source
-          workspace: k8s-source
-        - name: input
-          workspace: scratch
-      params:
-        - name: GIT_USER_NAME
-          value: ci
-        - name: GIT_USER_EMAIL
-          value: ci@example.com
-        - name: GIT_SCRIPT
-          value: |
-            git commit -am 'Promote to dev' \
-              -m '- image: $(params.image-url)@$(tasks.build.results.IMAGE_DIGEST)' || true
-            git push origin HEAD:$(params.k8s-git-branch)
+        - name: image-url
+          value: $(params.image-url)
+        - name: image-digest
+          value: $(tasks.build.results.IMAGE_DIGEST)
+        - name: kustomize-path
+          value: $(params.kustomize-path)
+        - name: git-message
+          value: Promote to dev
 
 #    - name: mock-webhook
 #      taskRef:

@@ -7,4 +7,5 @@ resources:
 - script-185.yml
 - script-1001.yml
 - quay-webhook.yml
+- update-image-digest.yml
 #- https://raw.githubusercontent.com/tektoncd/catalog/main/task/argocd-task-sync-and-wait/0.1/argocd-task-sync-and-wait.yaml

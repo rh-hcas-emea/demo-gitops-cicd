@@ -28,7 +28,7 @@ spec:
             value: quay.io/tstockwell/$(tt.params.git-repo-name)
           - name: k8s-git-url
             value: git@github.com:tom-stockwell/$(tt.params.git-repo-name)-k8s.git
-          - name: k8s-git-dir
+          - name: kustomize-path
             value: overlays/dev
           #  only for demo purposes on a private cluster
           - name: mock-webhooks

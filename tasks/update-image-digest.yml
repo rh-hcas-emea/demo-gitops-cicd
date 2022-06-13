@@ -1,0 +1,160 @@
+apiVersion: tekton.dev/v1beta1
+kind: Task
+metadata:
+  name: update-image
+spec:
+  workspaces:
+    - name: source
+      description: A workspace that contains the fetched git repository.
+
+    - name: ssh-directory
+      optional: true
+      description: |
+        A .ssh directory with private key, known_hosts, config, etc. Copied to
+        the user's home before git commands are executed. Used to authenticate
+        with the git remote when performing the clone. Binding a Secret to this
+        Workspace is strongly recommended over other volume types.
+
+    - name: basic-auth
+      optional: true
+      description: |
+        A Workspace containing a .gitconfig and .git-credentials file. These
+        will be copied to the user's home before any git commands are run. Any
+        other files in this Workspace are ignored. It is strongly recommended
+        to use ssh-directory over basic-auth whenever possible and to bind a
+        Secret to this Workspace over other volume types.
+
+  params:
+    - name: image-url
+      type: string
+
+    - name: image-digest
+      type: string
+
+    - name: kustomize-path
+      type: string
+      default: .
+
+    - name: git-branch
+      type: string
+      default: main
+      description: Git branch to push results to
+
+    - name: git-username
+      type: string
+      default: ci
+      description: Username of the git committer
+
+    - name: git-email
+      type: string
+      default: 101870882+stocky37-robot@users.noreply.github.com
+      description: Email of the git committer
+
+    - name: git-message
+      type: string
+      description: First line of the commit message.
+
+    - name: git-message-2
+      type: string
+      default: '- image: '
+      description: |
+        Prefix for second line of the commit message.
+        Image name will be appended.
+
+    - name: verbose
+      type: string
+      default: 'true'
+      description: Log the executed commands
+
+    - name: user-home
+      type: string
+      default: /root
+      description: |
+        Absolute path to the user's home directory.
+        Set this explicitly if you are running the image as a non-root user or have overridden the gitInitImage param with an image containing custom user configuration.
+
+    # step images
+    - name: kustomize-step-image
+      type: string
+      default: k8s.gcr.io/kustomize/kustomize:v4.5.5
+
+    - name: git-step-image
+      type: string
+      default: docker.io/alpine/git:v2.26.2@sha256:23618034b0be9205d9cc0846eb711b12ba4c9b468efdd8a59aac1d7b1a23363f
+
+  results:
+    - name: commit
+      description: The precise commit SHA after the git operation.
+
+  steps:
+    - name: kustomize
+      image: $(params.kustomize-step-image)
+      workingDir: $(workspaces.source.path)/$(params.kustomize-path)
+      env:
+        - name: PARAM_VERBOSE
+          value: $(params.verbose)
+      script: |
+        #!/usr/bin/env sh
+        set -eu
+
+        if [ "${PARAM_VERBOSE}" = "true" ] ; then
+          set -x
+        fi
+        
+        kustomize edit set image "$(params.image-url)@$(params.image-digest)"
+
+    # primarily copied from the git-cli ClusterTask
+    - name: git-commit
+      image: $(params.git-step-image)
+
+      env:
+        - name: PARAM_VERBOSE
+          value: $(params.verbose)
+        - name: PARAM_USER_HOME
+          value: $(params.user-home)
+        - name: WORKSPACE_SSH_DIRECTORY_BOUND
+          value: $(workspaces.ssh-directory.bound)
+        - name: WORKSPACE_SSH_DIRECTORY_PATH
+          value: $(workspaces.ssh-directory.path)
+        - name: WORKSPACE_BASIC_AUTH_DIRECTORY_BOUND
+          value: $(workspaces.basic-auth.bound)
+        - name: WORKSPACE_BASIC_AUTH_DIRECTORY_PATH
+          value: $(workspaces.basic-auth.path)
+      script: |
+        #!/usr/bin/env sh
+        set -eu
+        
+        if [ "${PARAM_VERBOSE}" = "true" ] ; then
+          set -x
+        fi
+        
+        if [ "${WORKSPACE_BASIC_AUTH_DIRECTORY_BOUND}" = "true" ] ; then
+          cp "${WORKSPACE_BASIC_AUTH_DIRECTORY_PATH}/.git-credentials" "${PARAM_USER_HOME}/.git-credentials"
+          cp "${WORKSPACE_BASIC_AUTH_DIRECTORY_PATH}/.gitconfig" "${PARAM_USER_HOME}/.gitconfig"
+          chmod 400 "${PARAM_USER_HOME}/.git-credentials"
+          chmod 400 "${PARAM_USER_HOME}/.gitconfig"
+        fi
+        
+        if [ "${WORKSPACE_SSH_DIRECTORY_BOUND}" = "true" ] ; then
+          cp -R "${WORKSPACE_SSH_DIRECTORY_PATH}" "${PARAM_USER_HOME}"/.ssh
+          chmod 700 "${PARAM_USER_HOME}"/.ssh
+          chmod -R 400 "${PARAM_USER_HOME}"/.ssh/*
+        fi
+        
+        # Setting up the config for the git.
+        git config --global user.email "$(params.git-email)"
+        git config --global user.name "$(params.git-username)"
+        
+        git commit -am '$(params.git-message)' \
+          -m '$(params.git-message-2)$(params.image-url)@$(params.image-digest)' || true
+        git push origin HEAD:$(params.git-branch)
+        
+        RESULT_SHA="$(git rev-parse HEAD | tr -d '\n')"
+        EXIT_CODE="$?"
+        if [ "$EXIT_CODE" != 0 ]
+        then
+          exit $EXIT_CODE
+        fi
+        # Make sure we don't add a trailing newline to the result!
+        echo -n "$RESULT_SHA" > $(results.commit.path)
+      workingDir: $(workspaces.source.path)
