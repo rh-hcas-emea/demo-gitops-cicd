@@ -1,0 +1,41 @@
+apiVersion: tekton.dev/v1beta1
+kind: Task
+metadata:
+  name: truncate-string
+spec:
+  description: |
+    Truncates a string from the `start` to `end` character and outputs the result.
+  params:
+    - name: input
+      type: string
+      description: The string to be truncated.
+
+    - name: start
+      type: string
+      default: 1
+      description: The character to being the cut from.
+
+    - name: end
+      type: string
+      default: 8
+      description: The character to end the cut from.
+
+    - name: step-image
+      type: string
+      default: registry.access.redhat.com/ubi8-minimal
+
+  results:
+    - name: output
+      description: The truncated string.
+
+  steps:
+    - name: truncate
+      image: $(params.step-image)
+      env:
+        - name: INPUT
+          value: $(params.input)
+        - name: LENGTH
+          value: $(params.length)
+      script: |
+        set -eux
+        echo -n "$INPUT" | cut -c -"$LENGTH" > $(results.output.path)

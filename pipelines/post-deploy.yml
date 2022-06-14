@@ -4,72 +4,71 @@ metadata:
   name: post-deploy
 spec:
   workspaces:
-  - name: source
-  - name: scratch
+    - name: source
+    - name: scratch
 
   params:
-  - name: app-name
-    type: string
-    description: Name of the application
+    - name: app-name
+      type: string
+      description: Name of the application
 
-      - name: image-url
-        type: string
-        description: URL of the container image to promote.
+        - name: image-url
+          type: string
+          description: URL of the container image to promote.
 
-      - name: image-digest
-        type: string
-        default: ''
-        description: |
-          Digest of the container image to promote.
-          If not provided, the digest will be extracted from the kustomization file found in `src-path`.
+        - name: image-digest
+          type: string
+          default: ''
+          description: |
+            Digest of the container image to promote.
+            If not provided, the digest will be extracted from the kustomization file found in `src-path`.
 
-      - name: git-url
-        type: string
-        description: URL of the git repository containing kustomize manifests to update.
+        - name: git-url
+          type: string
+          description: URL of the git repository containing kustomize manifests to update.
 
-      - name: git-branch-default
-        type: string
-        default: main
-        description: |
-          Default branch of the git repository.
-          This branch will be checked out when cloning the repository.
+        - name: git-branch-default
+          type: string
+          default: main
+          description: |
+            Default branch of the git repository.
+            This branch will be checked out when cloning the repository.
 
-      - name: git-branch-push
-        type: string
-        default: main
-        description: |
-          Branch of the git repository to push to.
-          If this branch is not equal to `git-branch`, a pull request will be created to `git-branch`.
+        - name: git-branch-push
+          type: string
+          default: main
+          description: |
+            Branch of the git repository to push to.
+            If this branch is not equal to `git-branch`, a pull request will be created to `git-branch`.
 
-      - name: git-username
-        type: string
-        default: ci
-        description: Username of the git committer
+        - name: git-username
+          type: string
+          default: ci
+          description: Username of the git committer
 
-      - name: git-email
-        type: string
-        default: 101870882+stocky37-robot@users.noreply.github.com
-        description: Email of the git committer
+        - name: git-email
+          type: string
+          default: 101870882+stocky37-robot@users.noreply.github.com
+          description: Email of the git committer
 
-      - name: overlays-path
-        type: string
-        default: overlays
-        description: Path to the directory containing the environment overlays.
+        - name: overlays-path
+          type: string
+          default: overlays
+          description: Path to the directory containing the environment overlays.
 
-      - name: src-env
-        type: string
-        default: ''
-        description: |
-          The environment to promote the image from.
-          This parameter is ignored if `image-digest` is set. 
+        - name: src-env
+          type: string
+          default: ''
+          description: |
+            The environment to promote the image from.
+            This parameter is ignored if `image-digest` is set. 
 
-      - name: dest-env
-        type: string
-        description: The environment to promote the image to.
+        - name: dest-env
+          type: string
+          description: The environment to promote the image to.
 
+  # todo: include smoke tests, system tests, etc.
   tasks:
-    # todo: include tasks for running tests
-
     - name: clone
       taskRef:
         name: git-clone
@@ -88,10 +87,6 @@ spec:
         name: kustomize-get-digest
       runAfter:
         - clone
-      when:
-        - input: $(params.image-digest)
-          operator: in
-          values: ['']
       workspaces:
         - name: input
           workspace: source
@@ -101,27 +96,48 @@ spec:
         - name: path
           value: $(params.overlays-path)/$(params.src-env)
 
-#    // 1. clone test repo
-#    // 1a. Get route to use
-#    // 2. run smoke tests (1)
-#    // 3. run system tests (2)
-#    // 4. trigger update for next env
-#    //   4a. clone k8s repo
-#    //   4b. yq the image[0].digest somehow, put in results
-#    //   4c. trigger promote pipeline with digest
-#
-#    // separate pipeline for updating to new digest (pass digest in as prop?)
-#
-#    // 1. clone k8s repo
-#    // 2. update image digest for next environment (if dev)
-#    // 3. update image digest for prod in new branch (if stage)
-#    // 4. create pr (if stage)
+    - name: truncate-sha
+      taskRef:
+        name: truncate
+      runAfter:
+        - get-digest
+      params:
+        - name: input
+          value: $(tasks.get-digest.results.digest)
+        - name: start
+          value: 8
+        - name: end
+          value: 19
 
+    - name: update-image
+      taskRef:
+        name: kustomize-set-image
+      runAfter:
+        - get-digest
+      workspaces:
+        - name: source
+          workspace: source
+      params:
+        - name: image-url
+          value: $(params.image-url)@$(tasks.get-digest.results.digest)
+        - name: path
+          value: $(params.overlays-path)/$(params.dest-env)
+        - name: git-branch
+          value: $(params.git-branch-push)
+        - name: git-message
+          value: Promote $(tasks.truncate-sha.results.output) to $(params.dest-env)
 
-  # 1. generic post-deploy pipeline
-  #    - has step stuff already there for  promoting, PRs, etc.
-  #    - needs to generically run tests for any component
-  # 2. individual post-deploy pipelines
-  #    - needs a separate promote-image pipeline
-  #    - should have logic from which environment to which (has to checkout k8s anyway)
-  #    - would contain the PR logic
+    - name: open-pr
+      taskRef:
+        name: echo
+      runAfter:
+        - update-image
+      when:
+        - input: $(params.git-branch-push)
+          operator: notin
+          values: ["$(params.git-branch-default)"]
+      params:
+        - name: args
+          value:
+            - "Open PR"
+

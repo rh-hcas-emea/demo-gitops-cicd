@@ -1,15 +1,12 @@
 apiVersion: kustomize.config.k8s.io/v1beta1
 kind: Kustomization
 resources:
+- echo.yml
 - image-digest.yml
+- image-digest-kustomize.yml
 - kustomize.yml
 - npm.yml
+- quay-webhook.yml
 - script-185.yml
 - script-1001.yml
-- quay-webhook.yml
-- kustomize-set-image.yml
-- kustomize-get-digest.yml
-- echo.yml
-#- tkn-trigger-promote-image.yml
-#- https://raw.githubusercontent.com/tektoncd/catalog/main/task/argocd-task-sync-and-wait/0.1/argocd-task-sync-and-wait.yaml
-#- https://raw.githubusercontent.com/tektoncd/catalog/main/task/argocd-task-sync-and-wait/0.1/argocd-task-sync-and-wait.yaml
+- truncate.yml

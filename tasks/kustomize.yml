@@ -23,7 +23,6 @@ spec:
       args:
         - "$(params.args[*])"
       script: |
-        set -x
-        ls -la
+        set -eux
         pwd
         kustomize $@
