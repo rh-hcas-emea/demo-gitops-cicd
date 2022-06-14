@@ -1,0 +1,24 @@
+#!/bin/sh
+
+set -x
+
+# test env to env promotion
+tkn pipeline start promote-image \
+  --use-param-defaults \
+  -w name=source,volumeClaimTemplateFile=vct.yml \
+  -p image-url=quay.io/tstockwell/greeting-api \
+  -p git-url=git@github.com:tom-stockwell/greeting-api-k8s.git \
+  -p src-env=dev \
+  -p dest-env=stage
+
+
+# test individual promotion
+tkn pipeline start promote-image \
+  --use-param-defaults \
+  -w name=source,volumeClaimTemplateFile=vct.yml \
+  -p image-url=quay.io/tstockwell/greeting-api \
+  -p git-url=git@github.com:tom-stockwell/greeting-api-k8s.git \
+  -p dest-env=stage \
+  -p image-digest=sha256:82d6464a4b0300c5d05a53ed82865cccf64b16425c837e7804de84adfa73d2ac \
+  -p git-branch-push=deploy
+

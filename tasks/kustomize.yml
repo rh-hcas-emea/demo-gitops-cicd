@@ -19,9 +19,11 @@ spec:
   steps:
     - name: kustomize
       image: $(params.kustomize-image)
-      workingDir: $(params.path)
+      workingDir: $(workspaces.source.path)/$(params.path)
       args:
         - "$(params.args[*])"
       script: |
         set -x
+        ls -la
+        pwd
         kustomize $@

@@ -1,7 +1,7 @@
 apiVersion: tekton.dev/v1beta1
 kind: Task
 metadata:
-  name: update-image
+  name: kustomize-set-image
 spec:
   workspaces:
     - name: source

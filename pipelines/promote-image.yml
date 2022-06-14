@@ -1,0 +1,174 @@
+apiVersion: tekton.dev/v1beta1
+kind: Pipeline
+metadata:
+  name: promote-image
+spec:
+  description: Promotes a container image between kustomize overlays.
+  workspaces:
+    - name: source
+  params:
+    - name: image-url
+      type: string
+      description: URL of the container image to promote.
+
+    - name: image-digest
+      type: string
+      default: ''
+      description: |
+        Digest of the container image to promote.
+        If not provided, the digest will be extracted from the kustomization file found in `src-path`.
+
+    - name: git-url
+      type: string
+      description: URL of the git repository containing kustomize manifests to update.
+
+    - name: git-branch-default
+      type: string
+      default: main
+      description: |
+        Default branch of the git repository.
+        This branch will be checked out when cloning the repository.
+
+    - name: git-branch-push
+      type: string
+      default: main
+      description: |
+        Branch of the git repository to push to.
+        If this branch is not equal to `git-branch`, a pull request will be created to `git-branch`.
+
+    - name: git-username
+      type: string
+      default: ci
+      description: Username of the git committer
+
+    - name: git-email
+      type: string
+      default: 101870882+stocky37-robot@users.noreply.github.com
+      description: Email of the git committer
+
+    - name: overlays-path
+      type: string
+      default: overlays
+      description: Path to the directory containing the environment overlays.
+
+    - name: src-env
+      type: string
+      default: ''
+      description: |
+        The environment to promote the image from.
+        This parameter is ignored if `image-digest` is set. 
+
+    - name: dest-env
+      type: string
+      description: The environment to promote the image to.
+
+  tasks:
+    - name: clone
+      taskRef:
+        name: git-clone
+        kind: ClusterTask
+      workspaces:
+        - name: output
+          workspace: source
+      params:
+        - name: url
+          value: $(params.git-url)
+        - name: revision
+          value: $(params.git-branch-default)
+
+    - name: update-image-param
+      taskRef:
+        name: kustomize
+      runAfter:
+        - clone
+      when:
+        - input: $(params.image-digest)
+          operator: notin
+          values: ['']
+      workspaces:
+        - name: source
+          workspace: source
+      params:
+        - name: args
+          value:
+            - edit
+            - set
+            - image
+            - $(params.image-url)@$(params.image-digest)
+        - name: path
+          value: $(params.overlays-path)/$(params.dest-env)
+
+    # path taken when no image-digest set
+    - name: get-digest
+      taskRef:
+        name: kustomize-get-digest
+      runAfter:
+        - clone
+      when:
+        - input: $(params.image-digest)
+          operator: in
+          values: ['']
+      workspaces:
+        - name: input
+          workspace: source
+      params:
+        - name: image-name
+          value: $(params.image-url)
+        - name: path
+          value: $(params.overlays-path)/$(params.src-env)
+
+    - name: update-image-src
+      taskRef:
+        name: kustomize
+      runAfter:
+        - get-digest
+      when:
+        - input: $(params.image-digest)
+          operator: in
+          values: ['']
+      workspaces:
+        - name: source
+          workspace: source
+      params:
+        - name: args
+          value:
+            - edit
+            - set
+            - image
+            - $(params.image-url)@$(tasks.get-digest.results.digest)
+        - name: path
+          value: $(params.overlays-path)/$(params.dest-env)
+
+    - name: commit-push
+      taskRef:
+        name: git-cli
+        kind: ClusterTask
+      runAfter:
+        - update-image-src
+        - update-image-param
+      workspaces:
+        - name: source
+          workspace: source
+      params:
+        - name: GIT_USER_NAME
+          value: $(params.git-username)
+        - name: GIT_USER_EMAIL
+          value: $(params.git-email)
+        - name: GIT_SCRIPT
+          value: |
+            git commit -am 'Promote to $(params.dest-env)' || true
+            git push origin HEAD:$(params.git-branch-push)
+
+    - name: open-pr
+      taskRef:
+        name: echo
+      runAfter:
+        - commit-push
+      when:
+        - input: $(params.git-branch-push)
+          operator: notin
+          values: ["$(params.git-branch-default)"]
+      params:
+        - name: args
+          value:
+            - "Open PR"

@@ -12,195 +12,116 @@ spec:
     type: string
     description: Name of the application
 
-  - name: image-url
-    type: string
-    description: Image url to deploy
+      - name: image-url
+        type: string
+        description: URL of the container image to promote.
 
-  - name: image-digest
-    type: string
-    description: Image namespace
+      - name: image-digest
+        type: string
+        default: ''
+        description: |
+          Digest of the container image to promote.
+          If not provided, the digest will be extracted from the kustomization file found in `src-path`.
 
-  - name: environment
-    type: string
-    default: dev
-    description: Environment the application was deployed to
+      - name: git-url
+        type: string
+        description: URL of the git repository containing kustomize manifests to update.
 
-  - name: git-url
-    type: string
-    description: URL of the git repository to update
+      - name: git-branch-default
+        type: string
+        default: main
+        description: |
+          Default branch of the git repository.
+          This branch will be checked out when cloning the repository.
 
-  - name: git-branch
-    type: string
-    default: main
-    description: Branch of the git repository
+      - name: git-branch-push
+        type: string
+        default: main
+        description: |
+          Branch of the git repository to push to.
+          If this branch is not equal to `git-branch`, a pull request will be created to `git-branch`.
 
-  - name: env-dev
-    type: string
-    default: dev
-    description: Name/suffix used for the development environment
+      - name: git-username
+        type: string
+        default: ci
+        description: Username of the git committer
 
-  - name: env-stage
-    type: string
-    default: stage
-    description: Name/suffix used for the staging environment
+      - name: git-email
+        type: string
+        default: 101870882+stocky37-robot@users.noreply.github.com
+        description: Email of the git committer
 
-  - name: env-prod
-    type: string
-    default: prod
-    description: Name/suffix used for the production environment
+      - name: overlays-path
+        type: string
+        default: overlays
+        description: Path to the directory containing the environment overlays.
 
-  - name: mock-webhooks
-    type: string
-    default: 'false'
-    description: Toggle on webhook mocks for systems where the needed webhooks will be unavailable
+      - name: src-env
+        type: string
+        default: ''
+        description: |
+          The environment to promote the image from.
+          This parameter is ignored if `image-digest` is set. 
+
+      - name: dest-env
+        type: string
+        description: The environment to promote the image to.
 
   tasks:
-  - name: image-digest
-    taskRef:
-      name: image-digest
-    params:
-    - name: image
-      value: docker://$(params.image-url):$(params.image-tag)
+    # todo: include tasks for running tests
 
-  - name: clone
-    taskRef:
-      name: git-clone
-      kind: ClusterTask
-    workspaces:
-    - name: output
-      workspace: source
-    params:
-    - name: url
-      value: $(params.git-url)
-    - name: revision
-      value: $(params.git-branch)
+    - name: clone
+      taskRef:
+        name: git-clone
+        kind: ClusterTask
+      workspaces:
+        - name: output
+          workspace: source
+      params:
+        - name: url
+          value: $(params.git-url)
+        - name: revision
+          value: $(params.git-branch-default)
 
-  - name: update-image-ref
-    taskRef:
-      name: kustomize
-    runAfter:
-    - clone
-    - image-digest
-    workspaces:
-    - name: source
-      workspace: source
-    params:
-    - name: args
-      value:
-        - edit
-        - set
-        - image
-        - "$(params.image-url)@$(tasks.image-digest.results.digest)"
-    - name: path
-      value: $(workspaces.source.path)/overlays/$(params.environment)
+    - name: get-digest
+      taskRef:
+        name: kustomize-get-digest
+      runAfter:
+        - clone
+      when:
+        - input: $(params.image-digest)
+          operator: in
+          values: ['']
+      workspaces:
+        - name: input
+          workspace: source
+      params:
+        - name: image-name
+          value: $(params.image-url)
+        - name: path
+          value: $(params.overlays-path)/$(params.src-env)
 
-  - name: commit
-    taskRef:
-      name: git-cli
-      kind: ClusterTask
-    runAfter:
-    - update-image-ref
-    workspaces:
-    - name: source
-      workspace: source
-    - name: input
-      workspace: scratch
-    params:
-    - name: GIT_USER_NAME
-      value: $(params.git-username)
-    - name: GIT_USER_EMAIL
-      value: $(params.git-email)
-    - name: GIT_SCRIPT
-      value: |
-        git commit -am '$(params.git-primary-message)$(params.environment)' \
-          -m '$(params.git-secondary-message)$(params.image-url)@$(tasks.image-digest.results.digest)' || true
-        git tag $(params.environment)
-        git push origin HEAD:$(params.git-branch)
-        git push origin --tags --force
+#    // 1. clone test repo
+#    // 1a. Get route to use
+#    // 2. run smoke tests (1)
+#    // 3. run system tests (2)
+#    // 4. trigger update for next env
+#    //   4a. clone k8s repo
+#    //   4b. yq the image[0].digest somehow, put in results
+#    //   4c. trigger promote pipeline with digest
+#
+#    // separate pipeline for updating to new digest (pass digest in as prop?)
+#
+#    // 1. clone k8s repo
+#    // 2. update image digest for next environment (if dev)
+#    // 3. update image digest for prod in new branch (if stage)
+#    // 4. create pr (if stage)
 
-  - name: argo-sync
-    taskRef:
-      name: argocd-task-sync-and-wait
-    runAfter:
-    - commit
-    params:
-    - name: argocd-version
-      value: v2.2.5
-    - name: application-name
-      value: $(params.app-name)-$(params.environment)
-    - name: revision
-      value: $(params.git-branch)
-    - name: flags
-      value: --insecure
 
-  - name: tag-image-stage
-    taskRef:
-      kind: ClusterTask
-      name: skopeo-copy
-    runAfter:
-      - argo-sync
-    when:
-      - input: $(params.environment)
-        operator: in
-        values: ["$(params.env-dev)"]
-    workspaces:
-      - name: images-url
-        workspace: scratch
-    params:
-      - name: srcImageURL
-        value: docker://$(params.image-url):$(params.image-tag)
-      - name: destImageURL
-        value: docker://$(params.image-url):$(params.env-stage)
-
-  - name: mock-webhook-stage
-    taskRef:
-      name: quay-webhook
-    runAfter:
-      - tag-image-stage
-    when:
-      - input: $(params.mock-webhooks)
-        operator: in
-        values: ['true']
-    params:
-      - name: image-name
-        value: $(params.app-name)
-      - name: image-namespace
-        value: $(params.image-namespace)
-      - name: image-tag
-        value: $(params.env-stage)
-
-  - name: tag-image-prod
-    taskRef:
-      kind: ClusterTask
-      name: skopeo-copy
-    runAfter:
-      - argo-sync
-    when:
-      - input: $(params.environment)
-        operator: in
-        values: ["$(params.env-stage)"]
-    workspaces:
-      - name: images-url
-        workspace: scratch
-    params:
-      - name: srcImageURL
-        value: docker://$(params.image-url):$(params.image-tag)
-      - name: destImageURL
-        value: docker://$(params.image-url):$(params.env-prod)
-
-  - name: mock-webhook-prod
-    taskRef:
-      name: quay-webhook
-    runAfter:
-      - tag-image-prod
-    when:
-      - input: $(params.mock-webhooks)
-        operator: in
-        values: ['true']
-    params:
-      - name: image-name
-        value: $(params.app-name)
-      - name: image-namespace
-        value: $(params.image-namespace)
-      - name: image-tag
-        value: $(params.env-prod)
+  # 1. generic post-deploy pipeline
+  #    - has step stuff already there for  promoting, PRs, etc.
+  #    - needs to generically run tests for any component
+  # 2. individual post-deploy pipelines
+  #    - needs a separate promote-image pipeline
+  #    - should have logic from which environment to which (has to checkout k8s anyway)
+  #    - would contain the PR logic

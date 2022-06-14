@@ -50,61 +50,61 @@ spec:
 #      description: Toggle on webhook mocks for systems where the needed webhooks will be unavailable
 
   tasks:
-    - name: clean
-      taskRef:
-        name: script-185
-      workspaces:
-        - name: workspace
-          workspace: source
-      params:
-        - name: script
-          value: rm -rf target
-        - name: workingDir
-          value: $(workspaces.workspace.path)
-
-    - name: clone
-      taskRef:
-        name: git-clone
-        kind: ClusterTask
-      runAfter: ['clean']
-      workspaces:
-        - name: output
-          workspace: source
-      params:
-        - name: url
-          value: $(params.git-url)
-        - name: revision
-          value: $(params.git-revision)
-
-    - name: test
-      taskRef:
-        name: maven
-        kind: ClusterTask
-      runAfter: ['clone']
-      workspaces:
-        - name: source
-          workspace: source
-        - name: maven-settings
-          workspace: scratch
-      params:
-        - name: GOALS
-          value: ['-B', 'verify']
-        - name: MAVEN_IMAGE
-          value: registry.access.redhat.com/ubi8/openjdk-17
-
-    - name: build
-      taskRef:
-        name: buildah
-        kind: ClusterTask
-      runAfter: ['clone']
-      workspaces:
-        - name: source
-          workspace: source
-      params:
-        - name: DOCKERFILE
-          value: ./Containerfile
-        - name: IMAGE
-          value: $(params.image-url):$(params.image-tag)
+#    - name: clean
+#      taskRef:
+#        name: script-185
+#      workspaces:
+#        - name: workspace
+#          workspace: source
+#      params:
+#        - name: script
+#          value: rm -rf target
+#        - name: workingDir
+#          value: $(workspaces.workspace.path)
+#
+#    - name: clone
+#      taskRef:
+#        name: git-clone
+#        kind: ClusterTask
+#      runAfter: ['clean']
+#      workspaces:
+#        - name: output
+#          workspace: source
+#      params:
+#        - name: url
+#          value: $(params.git-url)
+#        - name: revision
+#          value: $(params.git-revision)
+#
+#    - name: test
+#      taskRef:
+#        name: maven
+#        kind: ClusterTask
+#      runAfter: ['clone']
+#      workspaces:
+#        - name: source
+#          workspace: source
+#        - name: maven-settings
+#          workspace: scratch
+#      params:
+#        - name: GOALS
+#          value: ['-B', 'verify']
+#        - name: MAVEN_IMAGE
+#          value: registry.access.redhat.com/ubi8/openjdk-17
+#
+#    - name: build
+#      taskRef:
+#        name: buildah
+#        kind: ClusterTask
+#      runAfter: ['clone']
+#      workspaces:
+#        - name: source
+#          workspace: source
+#      params:
+#        - name: DOCKERFILE
+#          value: ./Containerfile
+#        - name: IMAGE
+#          value: $(params.image-url):$(params.image-tag)
 
     - name: k8s-clone
       taskRef:
@@ -119,25 +119,18 @@ spec:
         - name: revision
           value: $(params.k8s-git-branch)
 
-    - name: update-image-dev
+    - name: get-digest
       taskRef:
-        name: update-image
-      runAfter:
-        - k8s-clone
-        - build
-        - test
+        name: kustomize-get-digest
       workspaces:
-        - name: source
+        - name: input
           workspace: k8s-source
       params:
-        - name: image-url
+        - name: image-name
           value: $(params.image-url)
-        - name: image-digest
-          value: $(tasks.build.results.IMAGE_DIGEST)
-        - name: kustomize-path
-          value: $(params.kustomize-path)
-        - name: git-message
-          value: Promote to dev
+        - name: path
+          value: overlays/dev
+
 
 #    - name: mock-webhook
 #      taskRef:

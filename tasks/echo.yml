@@ -1,0 +1,19 @@
+apiVersion: tekton.dev/v1beta1
+kind: Task
+metadata:
+  name: echo
+spec:
+  params:
+    - name: args
+      type: array
+      default: ['Noop']
+
+    - name: step-image
+      type: string
+      default: registry.access.redhat.com/ubi8-minimal
+  steps:
+    - name: script
+      image: $(params.step-image)
+      command: ['echo']
+      args:
+      - "$(params.args[*])"

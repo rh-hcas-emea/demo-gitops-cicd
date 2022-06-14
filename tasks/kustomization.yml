@@ -7,5 +7,9 @@ resources:
 - script-185.yml
 - script-1001.yml
 - quay-webhook.yml
-- update-image-digest.yml
+- kustomize-set-image.yml
+- kustomize-get-digest.yml
+- echo.yml
+#- tkn-trigger-promote-image.yml
+#- https://raw.githubusercontent.com/tektoncd/catalog/main/task/argocd-task-sync-and-wait/0.1/argocd-task-sync-and-wait.yaml
 #- https://raw.githubusercontent.com/tektoncd/catalog/main/task/argocd-task-sync-and-wait/0.1/argocd-task-sync-and-wait.yaml
