@@ -5,3 +5,4 @@ resources:
   - ci-react.yml
   - ci-quarkus.yml
   - promote-image.yml
+  - post-deploy.yml

@@ -5,8 +5,9 @@ resources:
 - image-digest.yml
 - image-digest-kustomize.yml
 - kustomize.yml
+- kustomize-set-image.yml
 - npm.yml
 - quay-webhook.yml
 - script-185.yml
 - script-1001.yml
-- truncate.yml
+- truncate-string.yml

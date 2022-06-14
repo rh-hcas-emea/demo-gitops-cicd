@@ -57,8 +57,6 @@ spec:
       image: $(params.kustomize-image)
       workingDir: $(workspaces.source.path)/$(params.path)
       env:
-        - name: PARAM_VERBOSE
-          value: $(params.verbose)
         - name: IMAGE
           value: $(params.image-url)
       script: |
@@ -91,7 +89,7 @@ spec:
         
         # Commit & push changes
         git commit -am "$GIT_MESSAGE" -m "- image: $IMAGE" || true
-        git push origin "HEAD:$GIT_BRANCH"
+        git push origin "HEAD:refs/heads/$GIT_BRANCH"
         
         # Output sha into results
         RESULT_SHA="$(git rev-parse HEAD | tr -d '\n')"

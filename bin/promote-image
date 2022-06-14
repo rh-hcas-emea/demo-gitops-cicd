@@ -22,3 +22,4 @@ tkn pipeline start promote-image \
   -p image-digest=sha256:82d6464a4b0300c5d05a53ed82865cccf64b16425c837e7804de84adfa73d2ac \
   -p git-branch-push=deploy
 
+

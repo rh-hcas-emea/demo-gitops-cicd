@@ -12,12 +12,12 @@ spec:
 
     - name: start
       type: string
-      default: 1
+      default: '1'
       description: The character to being the cut from.
 
     - name: end
       type: string
-      default: 8
+      default: '8'
       description: The character to end the cut from.
 
     - name: step-image
@@ -34,8 +34,13 @@ spec:
       env:
         - name: INPUT
           value: $(params.input)
-        - name: LENGTH
-          value: $(params.length)
+        - name: START
+          value: $(params.start)
+        - name: END
+          value: $(params.end)
       script: |
         set -eux
-        echo -n "$INPUT" | cut -c -"$LENGTH" > $(results.output.path)
+        echo -n "$INPUT" | \
+          cut "-c${START}-${END}" | \
+          tr -d '\n' | \
+          tee $(results.output.path)

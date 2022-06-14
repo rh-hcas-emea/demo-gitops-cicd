@@ -5,71 +5,79 @@ metadata:
 spec:
   workspaces:
     - name: source
-    - name: scratch
 
   params:
-    - name: app-name
+    - name: image-url
       type: string
-      description: Name of the application
+      description: |
+        URL of the container image to promote.
+        Should not have a tag or digest.
 
-        - name: image-url
-          type: string
-          description: URL of the container image to promote.
+    - name: git-url
+      type: string
+      description: URL of the git repository containing kustomize manifests to update.
 
-        - name: image-digest
-          type: string
-          default: ''
-          description: |
-            Digest of the container image to promote.
-            If not provided, the digest will be extracted from the kustomization file found in `src-path`.
+    - name: git-branch-default
+      type: string
+      default: main
+      description: |
+        Default branch of the git repository.
+        This branch will be checked out when cloning the repository.
 
-        - name: git-url
-          type: string
-          description: URL of the git repository containing kustomize manifests to update.
+    - name: git-branch-push
+      type: string
+      default: main
+      description: |
+        Branch of the git repository to push to.
+        If this branch is not equal to `git-branch-default`, a pull request will be created to `git-branch-default`.
 
-        - name: git-branch-default
-          type: string
-          default: main
-          description: |
-            Default branch of the git repository.
-            This branch will be checked out when cloning the repository.
+    - name: overlays-path
+      type: string
+      default: overlays
+      description: Path to the directory containing the environment overlays.
 
-        - name: git-branch-push
-          type: string
-          default: main
-          description: |
-            Branch of the git repository to push to.
-            If this branch is not equal to `git-branch`, a pull request will be created to `git-branch`.
+    - name: src-env
+      type: string
+      description: The environment to promote the image from.
 
-        - name: git-username
-          type: string
-          default: ci
-          description: Username of the git committer
-
-        - name: git-email
-          type: string
-          default: 101870882+stocky37-robot@users.noreply.github.com
-          description: Email of the git committer
-
-        - name: overlays-path
-          type: string
-          default: overlays
-          description: Path to the directory containing the environment overlays.
-
-        - name: src-env
-          type: string
-          default: ''
-          description: |
-            The environment to promote the image from.
-            This parameter is ignored if `image-digest` is set. 
-
-        - name: dest-env
-          type: string
-          description: The environment to promote the image to.
+    - name: dest-env
+      type: string
+      description: The environment to promote the image to.
 
   # todo: include smoke tests, system tests, etc.
   tasks:
-    - name: clone
+
+    ############# MOCK TEST TASKS #############
+    - name: clone-tests
+      taskRef:
+        name: echo
+      params:
+        - name: args
+          value:
+            - 'Clone tests repo'
+
+    - name: smoke-tests
+      taskRef:
+        name: echo
+      runAfter:
+        - clone-tests
+      params:
+        - name: args
+          value:
+            - 'Run smoke tests'
+
+    - name: system-tests
+      taskRef:
+        name: echo
+      runAfter:
+        - smoke-tests
+      params:
+        - name: args
+          value:
+            - 'Run system tests'
+
+    ############# UPDATE NEXT ENVIRONMENT #############
+    - name: clone-k8s
       taskRef:
         name: git-clone
         kind: ClusterTask
@@ -86,7 +94,7 @@ spec:
       taskRef:
         name: kustomize-get-digest
       runAfter:
-        - clone
+        - clone-k8s
       workspaces:
         - name: input
           workspace: source
@@ -98,22 +106,23 @@ spec:
 
     - name: truncate-sha
       taskRef:
-        name: truncate
+        name: truncate-string
       runAfter:
         - get-digest
       params:
         - name: input
           value: $(tasks.get-digest.results.digest)
         - name: start
-          value: 8
+          value: '8'
         - name: end
-          value: 19
+          value: '19'
 
     - name: update-image
       taskRef:
         name: kustomize-set-image
       runAfter:
-        - get-digest
+        - truncate-sha
+        - system-tests
       workspaces:
         - name: source
           workspace: source
@@ -139,5 +148,5 @@ spec:
       params:
         - name: args
           value:
-            - "Open PR"
+            - "Mock open PR"
 
