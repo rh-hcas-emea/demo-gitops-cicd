@@ -41,70 +41,78 @@ spec:
 
     - name: kustomize-path
       type: string
-      default: .
+      default: overlays/dev
       description: Directory to update kustomize in
 
-#    - name: mock-webhooks
-#      type: string
-#      default: 'true'
-#      description: Toggle on webhook mocks for systems where the needed webhooks will be unavailable
-
   tasks:
-#    - name: clean
-#      taskRef:
-#        name: script-185
-#      workspaces:
-#        - name: workspace
-#          workspace: source
-#      params:
-#        - name: script
-#          value: rm -rf target
-#        - name: workingDir
-#          value: $(workspaces.workspace.path)
-#
-#    - name: clone
-#      taskRef:
-#        name: git-clone
-#        kind: ClusterTask
-#      runAfter: ['clean']
-#      workspaces:
-#        - name: output
-#          workspace: source
-#      params:
-#        - name: url
-#          value: $(params.git-url)
-#        - name: revision
-#          value: $(params.git-revision)
-#
-#    - name: test
-#      taskRef:
-#        name: maven
-#        kind: ClusterTask
-#      runAfter: ['clone']
-#      workspaces:
-#        - name: source
-#          workspace: source
-#        - name: maven-settings
-#          workspace: scratch
-#      params:
-#        - name: GOALS
-#          value: ['-B', 'verify']
-#        - name: MAVEN_IMAGE
-#          value: registry.access.redhat.com/ubi8/openjdk-17
-#
-#    - name: build
-#      taskRef:
-#        name: buildah
-#        kind: ClusterTask
-#      runAfter: ['clone']
-#      workspaces:
-#        - name: source
-#          workspace: source
-#      params:
-#        - name: DOCKERFILE
-#          value: ./Containerfile
-#        - name: IMAGE
-#          value: $(params.image-url):$(params.image-tag)
+    - name: clean
+      taskRef:
+        name: script-185
+      workspaces:
+        - name: workspace
+          workspace: source
+      params:
+        - name: script
+          value: rm -rf target
+        - name: workingDir
+          value: $(workspaces.workspace.path)
+
+    - name: clone
+      taskRef:
+        name: git-clone
+        kind: ClusterTask
+      runAfter: ['clean']
+      workspaces:
+        - name: output
+          workspace: source
+      params:
+        - name: url
+          value: $(params.git-url)
+        - name: revision
+          value: $(params.git-revision)
+
+    - name: test
+      taskRef:
+        name: maven
+        kind: ClusterTask
+      runAfter: ['clone']
+      workspaces:
+        - name: source
+          workspace: source
+        - name: maven-settings
+          workspace: scratch
+      params:
+        - name: GOALS
+          value: ['-B', 'verify']
+        - name: MAVEN_IMAGE
+          value: registry.access.redhat.com/ubi8/openjdk-17
+
+    - name: build
+      taskRef:
+        name: buildah
+        kind: ClusterTask
+      runAfter: ['clone']
+      workspaces:
+        - name: source
+          workspace: source
+      params:
+        - name: DOCKERFILE
+          value: ./Containerfile
+        - name: IMAGE
+          value: $(params.image-url):$(params.image-tag)
+
+    - name: truncate-digest
+      taskRef:
+        name: truncate-string
+      runAfter:
+        - build
+      params:
+        - name: input
+          value: $(tasks.build.results.IMAGE_DIGEST)
+        - name: start
+          value: '8'
+        - name: end
+          value: '19'
 
     - name: k8s-clone
       taskRef:
@@ -119,32 +127,22 @@ spec:
         - name: revision
           value: $(params.k8s-git-branch)
 
-    - name: get-digest
+    - name: update-image
       taskRef:
-        name: kustomize-get-digest
+        name: kustomize-set-image
+      runAfter:
+        - k8s-clone
+        - truncate-digest
+        - test
       workspaces:
-        - name: input
+        - name: source
           workspace: k8s-source
       params:
-        - name: image-name
-          value: $(params.image-url)
+        - name: image-url
+          value: $(params.image-url)@$(tasks.build.results.IMAGE_DIGEST)
         - name: path
-          value: overlays/dev
-
-
-#    - name: mock-webhook
-#      taskRef:
-#        name: quay-webhook
-#      runAfter:
-#        - tag-image-dev
-#      when:
-#        - input: $(params.mock-webhooks)
-#          operator: in
-#          values: ['true']
-#      params:
-#        - name: image-name
-#          value: $(params.app-name)
-#        - name: image-namespace
-#          value: $(params.image-namespace)
-#        - name: image-tag
-#          value: $(params.env-dev)
+          value: $(params.kustomize-path)
+        - name: git-branch
+          value: $(params.k8s-git-branch)
+        - name: git-message
+          value: Promote $(tasks.truncate-digest.results.output) to dev

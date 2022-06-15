@@ -1,0 +1,23 @@
+apiVersion: tekton.dev/v1beta1
+kind: Task
+metadata:
+  name: script
+spec:
+  params:
+    - name: script
+      type: string
+      description: Script to run.
+
+    - name: image
+      type: string
+      default: registry.access.redhat.com/ubi8-minimal
+      description: Image to run the script step with.
+
+  results:
+    - name: output
+      description: Output any script results here.
+
+  steps:
+    - name: script
+      image: $(params.image)
+      script: $(params.script)

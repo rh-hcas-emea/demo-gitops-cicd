@@ -1,0 +1,21 @@
+apiVersion: triggers.tekton.dev/v1beta1
+kind: Trigger
+metadata:
+  name: argo-post-sync
+spec:
+  interceptors:
+    - ref:
+        name: cel
+      params:
+        - name: "filter"
+          value: >-
+            has(body.name)
+              && has(body.environment)
+              && body.environment in ['dev', 'stage', 'prod']
+  bindings:
+    - name: name
+      value: $(body.name)
+    - name: environment
+      value: $(body.environment)
+  template:
+    ref: argo-post-sync

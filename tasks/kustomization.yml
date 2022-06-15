@@ -3,7 +3,7 @@ kind: Kustomization
 resources:
 - echo.yml
 - image-digest.yml
-- image-digest-kustomize.yml
+- kustomize-get-digest.yml
 - kustomize.yml
 - kustomize-set-image.yml
 - npm.yml
@@ -11,3 +11,5 @@ resources:
 - script-185.yml
 - script-1001.yml
 - truncate-string.yml
+- next-env.yml
+- script.yml

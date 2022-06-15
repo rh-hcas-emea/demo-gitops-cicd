@@ -1,0 +1,54 @@
+apiVersion: tekton.dev/v1beta1
+kind: Task
+metadata:
+  name: next-env
+spec:
+  description: |
+    Given a sequential list of environment strings, and the current environment, outputs
+    the next environment in the sequence.
+    
+    Output will be blank if there is no next environment (i.e. the current environment is
+    production), or the given environment was invalid.
+
+  params:
+    - name: environment
+      type: string
+      description: The current environment.
+
+    - name: environments
+      type: array
+      default:
+        - dev
+        - stage
+        - prod
+      description: The sequential list of environments to select from.
+
+    - name: image
+      type: string
+      default: registry.access.redhat.com/ubi8-minimal
+      description: The image to use to run the script step.
+
+  results:
+    - name: output
+      description: |
+        Holds the value of the next deployment environment.
+  steps:
+    - name: script
+      image: $(params.image)
+      args:
+        - $(params.environments[*])
+      env:
+        - name: ENVIRONMENT
+          value: $(params.environment)
+      script: |
+        set -eux
+        
+        environments=("$@")
+        for i in "${!environments[@]}"; do
+          current="${environments[i]}"
+          next="${environments[i+1]:-}"
+          if [[ "$current" == "$ENVIRONMENT" ]]; then
+            echo -n "$next" > $(results.output.path)
+            exit 0
+          fi
+        done

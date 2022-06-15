@@ -62,6 +62,7 @@ spec:
       script: |
         #!/usr/bin/env sh
         set -eux
+        pwd
         kustomize edit set image "$IMAGE"
 
     # primarily copied from the git-cli ClusterTask

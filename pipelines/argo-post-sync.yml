@@ -1,11 +1,10 @@
 apiVersion: tekton.dev/v1beta1
 kind: Pipeline
 metadata:
-  name: post-deploy
+  name: argo-post-sync
 spec:
   workspaces:
     - name: source
-
   params:
     - name: image-url
       type: string
@@ -23,26 +22,16 @@ spec:
       description: |
         Default branch of the git repository.
         This branch will be checked out when cloning the repository.
-
-    - name: git-branch-push
-      type: string
-      default: main
-      description: |
-        Branch of the git repository to push to.
-        If this branch is not equal to `git-branch-default`, a pull request will be created to `git-branch-default`.
+        For promotions between dev & stage
 
     - name: overlays-path
       type: string
       default: overlays
       description: Path to the directory containing the environment overlays.
 
-    - name: src-env
+    - name: environment
       type: string
-      description: The environment to promote the image from.
-
-    - name: dest-env
-      type: string
-      description: The environment to promote the image to.
+      description: The environment that was just synced.
 
   # todo: include smoke tests, system tests, etc.
   tasks:
@@ -71,16 +60,40 @@ spec:
         name: echo
       runAfter:
         - smoke-tests
+      when:
+        - input: $(params.environment)
+          operator: notin
+          values: ['prod']
       params:
         - name: args
           value:
             - 'Run system tests'
 
     ############# UPDATE NEXT ENVIRONMENT #############
+
+    # Note: None of these should be run when running the postsync for prod.
+    #       To ensure forwards compatibility with the `scope-when-expressions-to-task` setting,
+    #       the `when` guard has been added to all the below tasks.
+
+    - name: next-env
+      taskRef:
+        name: next-env
+      when:
+        - input: $(params.environment)
+          operator: notin
+          values: ['prod']
+      params:
+        - name: environment
+          value: $(params.environment)
+
     - name: clone-k8s
       taskRef:
         name: git-clone
         kind: ClusterTask
+      when:
+        - input: $(params.environment)
+          operator: notin
+          values: ['prod']
       workspaces:
         - name: output
           workspace: source
@@ -95,6 +108,10 @@ spec:
         name: kustomize-get-digest
       runAfter:
         - clone-k8s
+      when:
+        - input: $(params.environment)
+          operator: notin
+          values: ['prod']
       workspaces:
         - name: input
           workspace: source
@@ -102,13 +119,17 @@ spec:
         - name: image-name
           value: $(params.image-url)
         - name: path
-          value: $(params.overlays-path)/$(params.src-env)
+          value: $(params.overlays-path)/$(params.environment)
 
-    - name: truncate-sha
+    - name: truncate-digest
       taskRef:
         name: truncate-string
       runAfter:
         - get-digest
+      when:
+        - input: $(params.environment)
+          operator: notin
+          values: ['prod']
       params:
         - name: input
           value: $(tasks.get-digest.results.digest)
@@ -117,12 +138,37 @@ spec:
         - name: end
           value: '19'
 
+    - name: get-branch
+      taskRef:
+        name: script
+      runAfter:
+        - truncate-digest
+        - next-env
+      when:
+        - input: $(params.environment)
+          operator: notin
+          values: ['prod']
+      params:
+        - name: script
+          value: |
+            set -eux
+            
+            case "$(tasks.next-env.results.output)" in
+              prod) echo -n "promote-$(tasks.truncate-digest.results.output)-prod" > $(results.output.path) ;;
+              *) echo -n "$(params.git-branch-default)" > $(results.output.path) ;;
+            esac
+
     - name: update-image
       taskRef:
         name: kustomize-set-image
       runAfter:
-        - truncate-sha
         - system-tests
+        - get-branch
+        - next-env
+      when:
+        - input: $(params.environment)
+          operator: notin
+          values: ['prod']
       workspaces:
         - name: source
           workspace: source
@@ -130,11 +176,11 @@ spec:
         - name: image-url
           value: $(params.image-url)@$(tasks.get-digest.results.digest)
         - name: path
-          value: $(params.overlays-path)/$(params.dest-env)
+          value: $(params.overlays-path)/$(tasks.next-env.results.output)
         - name: git-branch
-          value: $(params.git-branch-push)
+          value: $(tasks.get-branch.results.output)
         - name: git-message
-          value: Promote $(tasks.truncate-sha.results.output) to $(params.dest-env)
+          value: Promote $(tasks.truncate-digest.results.output) to $(tasks.next-env.results.output)
 
     - name: open-pr
       taskRef:
@@ -142,9 +188,12 @@ spec:
       runAfter:
         - update-image
       when:
-        - input: $(params.git-branch-push)
+        - input: $(tasks.next-env.results.output)
+          operator: in
+          values: ['prod']
+        - input: $(params.environment)
           operator: notin
-          values: ["$(params.git-branch-default)"]
+          values: ['prod']
       params:
         - name: args
           value:

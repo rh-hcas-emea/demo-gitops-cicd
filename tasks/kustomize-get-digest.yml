@@ -1,7 +1,7 @@
 apiVersion: tekton.dev/v1beta1
 kind: Task
 metadata:
-  name: image-digest-kustomize
+  name: kustomize-get-digest
 spec:
   description: |
     Extracts an image digest from a `kustomization.yaml` file.
@@ -48,4 +48,7 @@ spec:
       script: |
         #!/usr/bin/env sh
         set -eux
-        yq ".images[] | select(.name == \"$IMAGE_NAME\") | .digest" < "$KUSTOMIZATION_FILE" | tee '$(results.digest.path)'
+
+        yq ".images[] | select(.name == \"$IMAGE_NAME\") | .digest" < "$KUSTOMIZATION_FILE" \
+          | tr -d '\n' \
+          | tee '$(results.digest.path)'
