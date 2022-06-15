@@ -3,7 +3,7 @@ kind: Kustomization
 resources:
   - eventlistener.yml
   - route.yml
-  - trigger-argo-post-sync.yml
+  - trigger-argo-postsync.yml
   - trigger-quay-push.yml
   - trigger-github-push-react.yml
   - trigger-github-push-quarkus.yml
@@ -11,4 +11,4 @@ resources:
   - triggertemplate-ci-quarkus.yml
   - triggertemplate-ci-react.yml
   - triggertemplate-deploy.yml
-  - triggertemplate-post-sync.yml
+  - triggertemplate-argo-postsync.yml

@@ -1,7 +1,7 @@
 apiVersion: tekton.dev/v1beta1
 kind: Pipeline
 metadata:
-  name: argo-post-sync
+  name: argo-postsync
 spec:
   workspaces:
     - name: source

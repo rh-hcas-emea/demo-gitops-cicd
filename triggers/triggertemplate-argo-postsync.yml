@@ -1,28 +1,27 @@
 apiVersion: triggers.tekton.dev/v1beta1
 kind: TriggerTemplate
 metadata:
-  name: argo-post-sync
+  name: argo-postsync
 spec:
   params:
-    - name: name
+    - name: app-name
     - name: environment
-    - name: next-environment
   resourcetemplates:
     - apiVersion: tekton.dev/v1beta1
       kind: PipelineRun
       metadata:
-        generateName: $(tt.params.name)-argo-post-sync-$(tt.params.environment)-
+        generateName: $(tt.params.app-name)-argo-postsync-$(tt.params.environment)-
         labels:
-          app: $(tt.params.name)
+          app: $(tt.params.app-name)
           environment: $(tt.params.environment)
       spec:
         pipelineRef:
           name: argo-post-sync
         params:
           - name: image-url
-            value: quay.io/tstockwell/$(tt.params.name)
+            value: quay.io/tstockwell/$(tt.params.app-name)
           - name: git-url
-            value: git@github.com:tom-stockwell/$(tt.params.name)-k8s.git
+            value: git@github.com:tom-stockwell/$(tt.params.app-name)-k8s.git
           - name: environment
             value: $(tt.params.environment)
         workspaces:

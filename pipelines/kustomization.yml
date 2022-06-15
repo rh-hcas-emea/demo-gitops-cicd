@@ -5,5 +5,5 @@ resources:
   - ci-react.yml
   - ci-quarkus.yml
   - promote-image.yml
-  - argo-post-sync.yml
+  - argo-postsync.yml
   - test.yml

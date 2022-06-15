@@ -1,7 +1,7 @@
 apiVersion: triggers.tekton.dev/v1beta1
 kind: Trigger
 metadata:
-  name: argo-post-sync
+  name: argo-postsync
 spec:
   interceptors:
     - ref:
@@ -9,12 +9,13 @@ spec:
       params:
         - name: "filter"
           value: >-
-            has(body.name)
+            header.match('X-ArgoCD-Hook', 'PostSync')
+              && has(body.app-name)
               && has(body.environment)
               && body.environment in ['dev', 'stage', 'prod']
   bindings:
-    - name: name
-      value: $(body.name)
+    - name: app-name
+      value: $(body.app-name)
     - name: environment
       value: $(body.environment)
   template:
