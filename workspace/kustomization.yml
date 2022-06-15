@@ -4,6 +4,7 @@ resources:
   - pvc-greeting-ui-source.yml
   - pvc-greeting-api-source.yml
   - secret-argocd-env-secret.yml
+  - secret-github-demo-gitops-cicd-token.yml
   - secret-github-stocky37-robot.yml
   - secret-tstockwell-quay.yml
   - serviceaccount-pipeline.yml

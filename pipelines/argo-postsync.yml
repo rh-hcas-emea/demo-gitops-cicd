@@ -16,6 +16,10 @@ spec:
       type: string
       description: URL of the git repository containing kustomize manifests to update.
 
+    - name: repo-full-name
+      type: string
+      description: The full repository name (e.g. `tektoncd/catalog`).
+
     - name: git-branch-default
       type: string
       default: main
@@ -32,6 +36,10 @@ spec:
     - name: environment
       type: string
       description: The environment that was just synced.
+
+    - name: github-token-secret-name
+      type: string
+      default: github-demo-gitops-cicd-token
 
   # todo: include smoke tests, system tests, etc.
   tasks:
@@ -180,11 +188,19 @@ spec:
         - name: git-branch
           value: $(tasks.get-branch.results.output)
         - name: git-message
-          value: Promote $(tasks.truncate-digest.results.output) to $(tasks.next-env.results.output)
+          value: &msg Promote $(tasks.truncate-digest.results.output) to $(tasks.next-env.results.output)
+
+    - name: test
+      taskRef:
+        name: echo
+      params:
+        - name: args
+          value:
+            - $(params.repo-full-name)
 
     - name: open-pr
       taskRef:
-        name: echo
+        name: github-open-pr
       runAfter:
         - update-image
       when:
@@ -195,7 +211,16 @@ spec:
           operator: notin
           values: ['prod']
       params:
-        - name: args
-          value:
-            - "Mock open PR"
+        - name: REPO_FULL_NAME
+          value: $(params.repo-full-name)
+        - name: HEAD
+          value: $(tasks.get-branch.results.output)
+        - name: BASE
+          value: $(params.git-branch-default)
+        - name: TITLE
+          value: *msg
+        - name: BODY
+          value: ''
+        - name: GITHUB_TOKEN_SECRET_NAME
+          value: $(params.github-token-secret-name)
 

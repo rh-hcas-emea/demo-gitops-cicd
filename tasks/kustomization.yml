@@ -13,3 +13,4 @@ resources:
 - truncate-string.yml
 - next-env.yml
 - script.yml
+- https://raw.githubusercontent.com/tektoncd/catalog/2a487ca5659ec6084c05fe0ea3b49cf77dfa8fed/task/github-open-pr/0.2/github-open-pr.yaml

@@ -16,12 +16,14 @@ spec:
           environment: $(tt.params.environment)
       spec:
         pipelineRef:
-          name: argo-post-sync
+          name: argo-postsync
         params:
           - name: image-url
             value: quay.io/tstockwell/$(tt.params.app-name)
           - name: git-url
             value: git@github.com:tom-stockwell/$(tt.params.app-name)-k8s.git
+          - name: repo-full-name
+            value: tom-stockwell/$(tt.params.app-name)-k8s
           - name: environment
             value: $(tt.params.environment)
         workspaces:

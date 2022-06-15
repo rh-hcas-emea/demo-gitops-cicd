@@ -10,13 +10,13 @@ spec:
         - name: "filter"
           value: >-
             header.match('X-ArgoCD-Hook', 'PostSync')
-              && has(body.app-name)
+              && has(body.name)
               && has(body.environment)
               && body.environment in ['dev', 'stage', 'prod']
   bindings:
     - name: app-name
-      value: $(body.app-name)
+      value: $(body.name)
     - name: environment
       value: $(body.environment)
   template:
-    ref: argo-post-sync
+    ref: argo-postsync
