@@ -172,7 +172,6 @@ spec:
       runAfter:
         - system-tests
         - get-branch
-        - next-env
       when:
         - input: $(params.environment)
           operator: notin

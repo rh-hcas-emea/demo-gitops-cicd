@@ -30,9 +30,6 @@ spec:
             value: git@github.com:tom-stockwell/$(tt.params.git-repo-name)-k8s.git
           - name: kustomize-path
             value: overlays/dev
-          #  only for demo purposes on a private cluster
-          - name: mock-webhooks
-            value: 'true'
         workspaces:
           - name: source
             persistentVolumeClaim:
