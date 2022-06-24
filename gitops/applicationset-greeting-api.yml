@@ -1,0 +1,29 @@
+apiVersion: argoproj.io/v1alpha1
+kind: ApplicationSet
+metadata:
+  name: greeting-api
+spec:
+  generators:
+    - git:
+        repoURL: &url https://github.com/tom-stockwell/greeting-api-k8s.git
+        revision: &rev HEAD
+        directories:
+          - path: overlays/*
+  template:
+    metadata:
+      name: greeting-api-{{ path.basename }}
+    spec:
+      project: default
+      source:
+        repoURL: *url
+        targetRevision: *rev
+        path: '{{ path }}'
+      destination:
+        server: https://kubernetes.default.svc
+        namespace: demo-gitops-cicd-{{ path.basename }}
+      syncPolicy:
+        automated:
+          prune: true
+          selfHeal: true
+        syncOptions:
+          - ApplyOutOfSyncOnly=true
