@@ -5,7 +5,7 @@ metadata:
 spec:
   generators:
     - git:
-        repoURL: &url https://github.com/tom-stockwell/demo-gitops-cicd-gitops.git
+        repoURL: &url https://github.com/tom-stockwell/demo-gitops-cicd.git
         revision: &rev HEAD
         directories:
           - path: '*'
