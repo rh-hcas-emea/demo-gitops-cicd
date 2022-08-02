@@ -18,8 +18,6 @@ spec:
         pipelineRef:
           name: ci-quarkus
         params:
-          - name: app-name
-            value: $(tt.params.git-repo-name)
           - name: git-url
             value: $(tt.params.git-repo-url)
           - name: git-revision
@@ -28,8 +26,6 @@ spec:
             value: quay.io/tstockwell/$(tt.params.git-repo-name)
           - name: k8s-git-url
             value: git@github.com:tom-stockwell/$(tt.params.git-repo-name)-k8s.git
-          - name: kustomize-path
-            value: overlays/dev
         workspaces:
           - name: source
             persistentVolumeClaim:

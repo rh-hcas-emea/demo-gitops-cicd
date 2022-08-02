@@ -84,10 +84,15 @@ TODO
 
 ## To Do
 
-- Basic post-deployment tests
-- Investigate asynchronous deployment pipelines using ArgoCD hooks
-- A better fix/workaround for different tasks in a pipeline running with different UIDs
+- Cleanup
+  - Remove unused tasks, pipelines, resources etc.
+  - Ensure tasks, pipeline params are all documented.
+  - Update readmes
+- Refactor for [pet-battle](https://github.com/petbattle) application
+- Cache application dependencies
+- Handle HTTPS in webhooks route
+- Find a better fix/workaround for different tasks in a pipeline running with different UIDs
 - A demo application that shows the status of each component in each environment
   - i.e. it's current version & health. Maybe even pipeline statuses?
-- Replace the demo application with pet-battle from the labs team
-- Implement proper multi tenancy Argo CD (likely at a higher level than this demo)
+- Generate task & pipeline markdown from yaml files
+- Lint output

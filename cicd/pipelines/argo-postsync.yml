@@ -16,7 +16,7 @@ spec:
       type: string
       description: URL of the git repository containing kustomize manifests to update.
 
-    - name: repo-full-name
+    - name: git-repo-full-name
       type: string
       description: The full repository name (e.g. `tektoncd/catalog`).
 
@@ -25,8 +25,8 @@ spec:
       default: main
       description: |
         Default branch of the git repository.
-        This branch will be checked out when cloning the repository.
-        For promotions between dev & stage
+        This branch will be used for updates to dev & stage.
+        The PR for prod will target this branch.
 
     - name: overlays-path
       type: string
@@ -40,6 +40,7 @@ spec:
     - name: github-token-secret-name
       type: string
       default: github-demo-gitops-cicd-token
+      description: Name of the Secret that contains the GitHub token for PR creation.
 
   # todo: include smoke tests, system tests, etc.
   tasks:
@@ -80,7 +81,7 @@ spec:
     ############# UPDATE NEXT ENVIRONMENT #############
 
     # Note: None of these should be run when running the postsync for prod.
-    #       To ensure forwards compatibility with the `scope-when-expressions-to-task` setting,
+    #       To ensure compatibility with the `scope-when-expressions-to-task` setting,
     #       the `when` guard has been added to all the below tasks.
 
     - name: next-env
@@ -189,14 +190,6 @@ spec:
         - name: git-message
           value: &msg Promote $(tasks.truncate-digest.results.output) to $(tasks.next-env.results.output)
 
-    - name: test
-      taskRef:
-        name: echo
-      params:
-        - name: args
-          value:
-            - $(params.repo-full-name)
-
     - name: open-pr
       taskRef:
         name: github-open-pr
@@ -211,7 +204,7 @@ spec:
           values: ['prod']
       params:
         - name: REPO_FULL_NAME
-          value: $(params.repo-full-name)
+          value: $(params.git-repo-full-name)
         - name: HEAD
           value: $(tasks.get-branch.results.output)
         - name: BASE

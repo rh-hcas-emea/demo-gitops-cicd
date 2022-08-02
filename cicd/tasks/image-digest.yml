@@ -3,15 +3,20 @@ kind: Task
 metadata:
   name: image-digest
 spec:
+  description: Extracts the image digest from a given container image using [skopeo](https://github.com/containers/skopeo).
   params:
   - name: image
     type: string
+    description: Container image to find the digest of.
+
   - name: skopeo-image
     type: string
     default: registry.access.redhat.com/ubi8/skopeo
+    description: Image ued to run skopeo
+
   results:
   - name: digest
-    description: The digest of the given image
+    description: The digest of the image.
   steps:
   - name: inspect
     image: $(params.skopeo-image)

@@ -4,13 +4,12 @@ metadata:
   name: webhooks
   labels:
     app.kubernetes.io/part-of: Triggers
-    eventlistener: greeting-cd-listener
+    eventlistener: webhooks
 spec:
-  host: webhooks.demo-gitops-cicd-cicd.apps.paas.lab.stocky37.dev
   port:
     targetPort: http-listener
   to:
     kind: Service
-    name: el-greeting-cd-listener
+    name: el-webhooks
     weight: 100
   wildcardPolicy: None

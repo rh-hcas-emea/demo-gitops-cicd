@@ -1,9 +1,6 @@
 apiVersion: kustomize.config.k8s.io/v1beta1
 kind: Kustomization
 resources:
-  - deploy.yml
-  - ci-react.yml
-  - ci-quarkus.yml
-  - promote-image.yml
   - argo-postsync.yml
-  - test.yml
+  - ci-quarkus.yml
+  - ci-react.yml

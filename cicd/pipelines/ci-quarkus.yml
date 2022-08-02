@@ -8,41 +8,44 @@ spec:
     - name: k8s-source
     - name: scratch
   params:
-    - name: app-name
-      type: string
-      description: Name of the application
-
     - name: git-url
       type: string
-      description: URL of the git repository containing application source code
+      description: URL of the git repository containing application source code.
 
     - name: git-revision
       type: string
       default: main
-      description: Git revision to checkout application source code
+      description: Git revision to checkout for `git-url`.
 
     - name: image-url
       type: string
-      description: Container image URL to publish
+      description: |
+        URL of the container image to publish.
+        Should not have a tag or digest.
 
     - name: image-tag
       type: string
       default: latest
-      description: Container image tag to publish
+      description: Tag of the container image to publish.
+
+    - name: dockerfile
+      type: string
+      default: ./Containerfile
+      description: Path to the Dockerfile to build.
 
     - name: k8s-git-url
       type: string
-      description: URL of the git repository containing k8s manifests
+      description: URL of the git repository containing k8s manifests.
 
     - name: k8s-git-branch
       type: string
       default: main
-      description: Git revision to checkout k8s manifests
+      description: Git revision to checkout for `k8s-git-url`
 
-    - name: kustomize-path
+    - name: overlay-path
       type: string
       default: overlays/dev
-      description: Directory to update kustomize in
+      description: Path to the Kustomize overlay to update.
 
   tasks:
     - name: clean
@@ -97,7 +100,7 @@ spec:
           workspace: source
       params:
         - name: DOCKERFILE
-          value: ./Containerfile
+          value: $(params.dockerfile)
         - name: IMAGE
           value: $(params.image-url):$(params.image-tag)
 
@@ -141,7 +144,7 @@ spec:
         - name: image-url
           value: $(params.image-url)@$(tasks.build.results.IMAGE_DIGEST)
         - name: path
-          value: $(params.kustomize-path)
+          value: $(params.overlay-path)
         - name: git-branch
           value: $(params.k8s-git-branch)
         - name: git-message

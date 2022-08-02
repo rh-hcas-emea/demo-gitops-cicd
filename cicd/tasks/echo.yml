@@ -3,14 +3,19 @@ kind: Task
 metadata:
   name: echo
 spec:
+  description: |
+    This task runs a simple `echo` command with the given arguments.
+    It should typically be used for debugging purposes, or as a 'no-op' task.
   params:
     - name: args
       type: array
       default: ['Noop']
+      description: Args passed to the echo command.
 
-    - name: step-image
+    - name: image
       type: string
       default: registry.access.redhat.com/ubi8-minimal
+      description: Image used to run the `echo` command.
   steps:
     - name: script
       image: $(params.step-image)

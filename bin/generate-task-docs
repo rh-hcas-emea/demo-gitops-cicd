@@ -1,0 +1,35 @@
+#!/bin/bash
+
+SCRIPT_DIR=$( realpath "$( dirname "${BASH_SOURCE[0]}" )")
+PROJECT_DIR="$(realpath "$SCRIPT_DIR/../")"
+TASKS_DIR="$PROJECT_DIR/cicd/tasks"
+
+# requirements:
+# - yq >= 4.27.1
+# - `pip install csv2md`
+
+
+echo "# Tasks"
+echo
+for f in "$TASKS_DIR"/*.yml; do
+  if [ "$(basename "$f")" != "kustomization.yml" ]; then
+    name="$(yq '.metadata.name' "$f")"
+    echo "## $name"
+    echo
+    yq '.spec.description' "$f"
+    echo "### Parameters"
+
+    params="$(yq '.spec.params' "$f" -o csv 2>/dev/null)"
+    [[ $? == 0 ]] && echo "$params" | csv2md
+
+    echo -e '\n### Results'
+    results="$(yq '.spec.results' "$f" -o csv 2>/dev/null)"
+    [[ $? == 0 ]] && echo "$results" | csv2md
+
+    echo -e '\n### Workspaces'
+    workspaces="$(yq '.spec.workspaces' "$f" -o csv  2>/dev/null)"
+    [[ $? == 0 ]] && echo "$workspaces" | csv2md
+    echo
+    echo
+  fi
+done

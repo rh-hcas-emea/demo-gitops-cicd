@@ -1,7 +1,7 @@
 apiVersion: triggers.tekton.dev/v1alpha1
 kind: EventListener
 metadata:
-  name: greeting-cd-listener
+  name: webhooks
 spec:
   serviceAccountName: pipeline
   namespaceSelector:

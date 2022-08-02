@@ -1,15 +1,27 @@
 # Tasks
 
+## echo
+
+This task runs a simple `echo` command with the given arguments.
+
+It should typically be used for debugging purposes, or as a 'no-op' task.
+
+### Parameters
+| Parameters | Type   | Default                                 | Description                             |
+|------------|--------|-----------------------------------------|-----------------------------------------|
+| args       | string | `["Noop"]`                              | Args passed to the echo command.        |
+| image      | array  | registry.access.redhat.com/ubi8-minimal | Image to use to run the `echo` command. |
+
 ## image-digest
 
-Extracts the image digest from a given container image.
+Extracts the image digest from a given container image using [skopeo](https://github.com/containers/skopeo).
 
 ### Parameters
 
-| Parameters   | Default                                  | Description                                                         |
-|--------------|------------------------------------------|---------------------------------------------------------------------|
-| **image**    |                                          | The image to find the digest of.                                    |
-| skopeo-image | `registry.access.redhat.com/ubi8/skopeo` | The skopeo image to use.  Must contain the skopeo binary in `PATH`. |
+| Parameters    | Type   | Default                                  | Description                                                        |
+|---------------|--------|------------------------------------------|--------------------------------------------------------------------|
+| **image-url** | string |                                          | URL of the container image to find the digest of.                  |
+| skopeo-image  | string | `registry.access.redhat.com/ubi8/skopeo` | The skopeo image to use. Must contain the skopeo binary in `PATH`. |
 
 ### Results
 | Name   | Description                    | 
