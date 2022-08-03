@@ -3,8 +3,22 @@ kind: Task
 metadata:
   name: truncate-string
 spec:
-  description: |
-    Truncates a string from the `start` to `end` character and outputs the result.
+  description: |-
+    This task truncates a given string from the `start` to `end` (inclusive) characters.
+    This could be used, for example, to obtain a truncated sha from a given image digest.
+    
+    **An example:**
+    Calling the task with the following parameters:
+    ```
+    - name: input
+      value: sha256:6edca3916b34d10481e4d24d14ebe6ebc6db517bec1b2db6ae2d7d47c2ecfaee
+    - name: start
+      value: '8'
+    - name: end
+      value: '19'
+    ```
+    would result in the `output` of `6edca3916b34`.
+
   params:
     - name: input
       type: string
@@ -13,16 +27,17 @@ spec:
     - name: start
       type: string
       default: '1'
-      description: The character to being the cut from.
+      description: The character to begin the cut from.
 
     - name: end
       type: string
       default: '8'
-      description: The character to end the cut from.
+      description: The character to end the cut on.
 
-    - name: step-image
+    - name: image
       type: string
       default: registry.access.redhat.com/ubi8-minimal
+      description: The image used to run the script.
 
   results:
     - name: output
@@ -30,7 +45,7 @@ spec:
 
   steps:
     - name: truncate
-      image: $(params.step-image)
+      image: $(params.image)
       env:
         - name: INPUT
           value: $(params.input)

@@ -46,6 +46,11 @@ spec:
       default: overlays/dev
       description: Path to the Kustomize overlay to update.
 
+    - name: nodejs-image
+      type: string
+      default: registry.access.redhat.com/ubi8/nodejs-16
+      description: The image to use for NodeJS tasks.
+
   tasks:
     - name: clean
       taskRef:
@@ -81,8 +86,10 @@ spec:
         - name: source
           workspace: source
       params:
-        - name: args
+        - name: ARGS
           value: ['ci', '--verbose', '--no-audit']
+        - name: IMAGE
+          value: $(params.nodejs-image)
 
     - name: test
       taskRef:
@@ -92,8 +99,10 @@ spec:
         - name: source
           workspace: source
       params:
-        - name: args
+        - name: ARGS
           value: ['test']
+        - name: IMAGE
+          value: $(params.nodejs-image)
 
     - name: build
       taskRef:

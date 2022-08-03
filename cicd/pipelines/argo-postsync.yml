@@ -37,6 +37,15 @@ spec:
       type: string
       description: The environment that was just synced.
 
+    - name: environments
+      type: array
+      default:
+        - dev
+        - stage
+        - prod
+      description: The sequential list of environments to deploy to.
+
+
     - name: github-token-secret-name
       type: string
       default: github-demo-gitops-cicd-token
@@ -86,14 +95,16 @@ spec:
 
     - name: next-env
       taskRef:
-        name: next-env
+        name: array-find
       when:
         - input: $(params.environment)
           operator: notin
           values: ['prod']
       params:
-        - name: environment
+        - name: item
           value: $(params.environment)
+        - name: items
+          value: $(params.environments)
 
     - name: clone-k8s
       taskRef:
@@ -184,11 +195,11 @@ spec:
         - name: image-url
           value: $(params.image-url)@$(tasks.get-digest.results.digest)
         - name: path
-          value: $(params.overlays-path)/$(tasks.next-env.results.output)
+          value: $(params.overlays-path)/$(tasks.next-env.results.next)
         - name: git-branch
           value: $(tasks.get-branch.results.output)
         - name: git-message
-          value: &msg Promote $(tasks.truncate-digest.results.output) to $(tasks.next-env.results.output)
+          value: &msg Promote $(tasks.truncate-digest.results.output) to $(tasks.next-env.results.next)
 
     - name: open-pr
       taskRef:
@@ -196,7 +207,7 @@ spec:
       runAfter:
         - update-image
       when:
-        - input: $(tasks.next-env.results.output)
+        - input: $(tasks.next-env.results.next)
           operator: in
           values: ['prod']
         - input: $(params.environment)

@@ -3,18 +3,36 @@ kind: Task
 metadata:
   name: script-1001
 spec:
-  workspaces:
-    - name: workspace
-      optional: true
+  description: |-
+    This task allows users to run an arbitrary script as uid 1001.
+    It is functionally identical to the [`script`](#script) task, aside from the security context used when running the script.
+    
+    This is intended as a workaround for permissions issues when attempting to delete files in tasks that run using a different uid than the uid that created the files.
+
   params:
     - name: script
       type: string
+      description: The script to run.
+
     - name: image
       type: string
       default: registry.access.redhat.com/ubi8-minimal
+      description: The image used to run the script.
+
     - name: workingDir
       type: string
       default: .
+      description: The directory to run the script in.
+
+  results:
+    - name: output
+      description: Any results of the script.
+
+  workspaces:
+    - name: workspace
+      optional: true
+      description: An optional workspace that contains files that may be needed by the script.
+
   steps:
     - name: script
       image: $(params.image)

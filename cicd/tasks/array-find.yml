@@ -1,0 +1,56 @@
+apiVersion: tekton.dev/v1beta1
+kind: Task
+metadata:
+  name: array-find
+spec:
+  description: |-
+    This task finds the given item in an array and outputs various information related to it.
+    This can be used, for example, to select the next environment to deploy to given the current environment.
+
+    All results will be blank if they would result in an "IndexOutOfBounds"" exception.
+  params:
+    - name: item
+      type: string
+      description: The current item in the sequence.
+
+    - name: items
+      type: array
+      default: []
+      description: The array of items to select from.
+
+    - name: image
+      type: string
+      default: registry.access.redhat.com/ubi8-minimal
+      description: The image to use to run the script.
+
+  results:
+    - name: index
+      description: The index value of the item.
+    - name: prev
+      description: The value of the previous item in the array.
+    - name: next
+      description: The value of the next item in the array.
+
+  steps:
+    - name: script
+      image: $(params.image)
+      args:
+        - $(params.items[*])
+      env:
+        - name: ITEM
+          value: $(params.item)
+      script: |
+        set -eux
+        
+        items=("$@")
+        for i in "${!items[@]}"; do
+          current="${items[i]}"
+          next="${items[i+1]:-}"
+          prev="${items[i-1]:-}"
+          if [[ "$current" == "$ITEM" ]]; then
+            echo -n "$next" > $(results.next.path)
+            echo -n "prev" > $(results.prev.path)
+            echo -n "$i" > $(results.index.path)
+            exit 0
+          fi
+        done

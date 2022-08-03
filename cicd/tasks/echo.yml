@@ -3,22 +3,24 @@ kind: Task
 metadata:
   name: echo
 spec:
-  description: |
-    This task runs a simple `echo` command with the given arguments.
-    It should typically be used for debugging purposes, or as a 'no-op' task.
+  description: |-
+    This task can be used to run an `echo` command.
+
+    It can be used for debugging purposes, or as a 'no-op' task.
+
   params:
     - name: args
       type: array
-      default: ['Noop']
-      description: Args passed to the echo command.
+      default: []
+      description: The arguments to pass to echo.
 
     - name: image
       type: string
       default: registry.access.redhat.com/ubi8-minimal
-      description: Image used to run the `echo` command.
+      description: The image used to run the `echo` command.
   steps:
-    - name: script
+    - name: echo
       image: $(params.step-image)
       command: ['echo']
       args:
-      - "$(params.args[*])"
+        - "$(params.args[*])"

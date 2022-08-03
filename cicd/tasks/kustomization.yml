@@ -1,15 +1,21 @@
 apiVersion: kustomize.config.k8s.io/v1beta1
 kind: Kustomization
 resources:
+  - array-find.yml
   - echo.yml
   - image-digest.yml
   - kustomize.yml
   - kustomize-get-digest.yml
   - kustomize-set-image.yml
-  - next-env.yml
-  - npm.yml
   - script.yml
   - script-185.yml
   - script-1001.yml
   - truncate-string.yml
   - https://raw.githubusercontent.com/tektoncd/catalog/2a487ca5659ec6084c05fe0ea3b49cf77dfa8fed/task/github-open-pr/0.2/github-open-pr.yaml
+  - https://raw.githubusercontent.com/tektoncd/catalog/2a487ca5659ec6084c05fe0ea3b49cf77dfa8fed/task/npm/0.1/npm.yaml
+
+#replacements:
+#  - source:
+#      kind: Task
+#      name: kustomize
+#      fieldPath:

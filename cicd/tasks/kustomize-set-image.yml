@@ -3,54 +3,62 @@ kind: Task
 metadata:
   name: kustomize-set-image
 spec:
-  description: |
-    Runs kustomize edit set image and commits the result.
-
-  workspaces:
-    - name: source
-      description: A workspace that contains the fetched git repository.
+  description: |-
+    This task can be used to run `kustomize set image` and commit the result.
+    This can be used to promote images between overlays.
 
   params:
     - name: image-url
       type: string
-      description: The complete image URL to update, including digest or tag.
+      description: >-
+        The URL of the container image to set.
+        Should include any relevant digests or tags.
 
     - name: path
       type: string
       default: .
-      description: The path of the kustomize overlay to update, relative to the `source` workspace.
+      description: >-
+        The directory within which kustomize will be run.
+        Should be relative to the `source` workspace.
 
     - name: git-branch
       type: string
       default: main
-      description: Git branch to push changes to.
+      description: The git branch to push changes to.
 
     - name: git-username
       type: string
       default: ci
-      description: Username of the git committer
+      description: The username of the git committer.
 
     - name: git-email
       type: string
       default: 101870882+stocky37-robot@users.noreply.github.com
-      description: Email of the git committer
+      description: The email of the git committer.
 
     - name: git-message
       type: string
-      description: First line of the commit message.
+      default: Update image
+      description: The first line of the commit message.
 
     # step images
     - name: kustomize-image
       type: string
       default: k8s.gcr.io/kustomize/kustomize:v4.5.5
+      description: The image used to run kustomize.
 
     - name: git-image
       type: string
       default: docker.io/alpine/git:v2.26.2
+      description: The image used to run git.
 
   results:
     - name: commit
       description: The precise commit SHA after the git operation.
+
+  workspaces:
+    - name: source
+      description: A workspace that contains a git repository that contains kustomizations.
 
   steps:
     - name: kustomize
@@ -80,6 +88,7 @@ spec:
           value: $(params.git-email)
         - name: GIT_USERNAME
           value: $(params.git-username)
+
       script: |
         #!/usr/bin/env sh
         set -eux

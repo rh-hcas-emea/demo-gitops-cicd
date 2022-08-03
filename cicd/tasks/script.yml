@@ -3,21 +3,33 @@ kind: Task
 metadata:
   name: script
 spec:
+  description: This task allows users to run an arbitrary script.
   params:
     - name: script
       type: string
-      description: Script to run.
+      description: The script to run.
 
     - name: image
       type: string
       default: registry.access.redhat.com/ubi8-minimal
-      description: Image to run the script step with.
+      description: The image used to run the script.
+
+    - name: workingDir
+      type: string
+      default: .
+      description: The directory to run the script in.
 
   results:
     - name: output
-      description: Output any script results here.
+      description: Any results of the script.
+
+  workspaces:
+    - name: workspace
+      optional: true
+      description: An optional workspace that contains files that may be needed by the script.
 
   steps:
     - name: script
       image: $(params.image)
       script: $(params.script)
+      workingDir: $(params.workingDir)

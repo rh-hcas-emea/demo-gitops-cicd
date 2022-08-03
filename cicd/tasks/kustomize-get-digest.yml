@@ -3,43 +3,56 @@ kind: Task
 metadata:
   name: kustomize-get-digest
 spec:
-  description: |
-    Extracts an image digest from a `kustomization.yaml` file.
-    Typically used to "promote" an image between environment overlays.
+  description: |-
+    This task can be used to find the digest of a given image from a kustomization file.
+    This could then be used to promote an image between environment overlays.
+    
+    **Note:** Since the digest is merely extracted from the YAML using [yq](https://mikefarah.gitbook.io/yq/), the digest will need to be present in the kustomization file for this to be successful.
+    E.g.
+    ```
+    images:
+      - name: registry.access.redhat.com/ubi8
+        digest: sha256:6edca3916b34d10481e4d24d14ebe6ebc6db517bec1b2db6ae2d7d47c2ecfaee
+    ```
 
-  workspaces:
-    - name: input
   params:
     - name: image-name
       type: string
-      description: |
-        URL of the container image to get the digest for.
-        Should match the value in `images[].name`.
-        Should not contain a digest or tag.
+      description: >-
+        The name of the image to find the digest for.
+        It should match the value in `images[].name`.
 
     - name: path
       type: string
       default: .
-      description: Path to the kustomization file.
+      description: >-
+        The directory within which the kustomization file is located.
+        Should be relative to the `source` workspace.
 
+    # Note: for most people the default should be `kustomization.yaml`
+    #       I just have a preference for `.yml`
     - name: filename
       type: string
       default: kustomization.yml
-      description: Filename of the kustomization file.
+      description: The filename of the kustomization file.
 
     - name: yq-image
       type: string
       default: docker.io/mikefarah/yq:4.25.2
-      description: |
-        Image to use for the `yq` step.
-        Must contain the `yq` binary in `PATH`.
+      description: The image used to run yq.
 
   results:
     - name: digest
+      description: The digest of the image.
+
+  workspaces:
+    - name: source
+      description: A workspace that contains kustomizations.
+
   steps:
     - name: yq
       image: $(params.yq-image)
-      workingDir: $(workspaces.input.path)
+      workingDir: $(workspaces.source.path)
       env:
         - name: KUSTOMIZATION_FILE
           value: $(params.path)/$(params.filename)
@@ -52,3 +65,5 @@ spec:
         yq ".images[] | select(.name == \"$IMAGE_NAME\") | .digest" < "$KUSTOMIZATION_FILE" \
           | tr -d '\n' \
           | tee '$(results.digest.path)'
+
+
