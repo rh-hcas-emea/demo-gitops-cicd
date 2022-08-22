@@ -20,7 +20,7 @@ spec:
       description: The image used to run the `echo` command.
   steps:
     - name: echo
-      image: $(params.step-image)
+      image: $(params.image)
       command: ['echo']
       args:
         - "$(params.args[*])"
