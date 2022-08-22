@@ -38,6 +38,7 @@ spec:
     | update-image     | Updates the image in the environment overlay determined by `next-env` with the image digest found in `get-digest`. |
     
     [^1]: These tasks have yet to be implemented and are currently placeholders.
+
   params:
     - name: image-url
       type: string
