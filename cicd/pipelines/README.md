@@ -1,162 +1,144 @@
 # Pipelines
+
+## argo-postsync
+
+An ArgoCD postsync pipeline for simple applications.
+
+This pipeline should be triggered by a postsync ArgoCD hook.
+
+The pipeline will test the application that was just deployed, before updating the next environment in the pipeline with the successfully tested image.
+In the case of a production change, a PR will be created instead of the changes being merged automatically.
+
+### Tasks
+
+```mermaid
+flowchart LR
+    clone-tests-->smoke-tests
+    smoke-tests-->system-tests
+    clone-k8s-->get-digest
+    get-digest-->truncate-digest
+    truncate-digest-->get-branch
+    next-env-->get-branch
+    get-branch-->update-image
+    system-tests-->update-image
+```
+
+| Name             | Description                                                                                                        |
+|------------------|--------------------------------------------------------------------------------------------------------------------|
+| clone-tests[^1]  | Clones the test repository.                                                                                        |
+| smoke-tests[^1]  | TODO: Runs smoke tests from the test repository.                                                                   |
+| system-tests[^1] | TODO: Runs system/integration tests from the test repository. Skipped in production.                               |
+| clone-k8s        | Clones the kustomization repository.                                                                               |
+| get-digest       | Extracts the digest of the application image used in the current environment.                                      |
+| truncate-digest  | Gets a truncated version of the digest hash.                                                                       |
+| next-env         | Determines the next environment to update.                                                                         |
+| get-branch       | Determines the git branch to push kustomization changes to.                                                        |
+| update-image     | Updates the image in the environment overlay determined by `next-env` with the image digest found in `get-digest`. |
+
+[^1]: These tasks have yet to be implemented and are currently placeholders.
+
+### Parameters
+
+| Name                     | Type   | Default                         | Description                                                             |
+| ------------------------ | ------ | ------------------------------- | ----------------------------------------------------------------------- |
+| image-url                | string |                                 | URL of the container image to promote. Should not have a tag or digest. |
+| git-url                  | string |                                 | URL of the git repository containing kustomize manifests to update.     |
+| git-repo-full-name       | string |                                 | The full repository name (e.g. `tektoncd/catalog`).                     |
+| git-branch-default       | string | `main`                          | Default branch of the git repository.                                   |
+| overlays-path            | string | `overlays`                      | Path to the directory containing the environment overlays.              |
+| environment              | string |                                 | The environment that was just synced.                                   |
+| environments             | array  | `["dev","stage","prod"]`        | The sequential list of environments to deploy to.                       |
+| github-token-secret-name | string | `github-demo-gitops-cicd-token` | Name of the Secret that contains the GitHub token for PR creation.      |
+
+### Workspaces
+
+| Name   | Optional | Read-Only | Description                                                       |
+| ------ | -------- | --------- | ----------------------------------------------------------------- |
+| source | false    | false     | A workspace to hold the kustomize repository for the application. |
+
+
 ## ci-quarkus
 
 A CI pipeline for simple quarkus applications.
-This pipeline is used by [greeting-api](https://github.com/tom-stockwell/greeting-api) application.
+
+This pipeline will test the quarkus application before building & publishing a container image.
+A kustomize overlay from the given repository will then be updated with the new image details.
+
+A graph of the pipeline tasks can be seen below:
 
 ```mermaid
 flowchart LR
     clean-->clone
     clone-->test
     clone-->build
-    build-->tag-image-dev
-    test-->tag-image-dev
-    tag-image-dev-->mock-webhook
+    build-->truncate-digest
+    k8s-clone-->update-image
+    truncate-digest-->update-image
+    test-->update-image
 ```
 
 ### Parameters
 
-| Name                | Default  | Description                                                                             |
-|---------------------|----------|-----------------------------------------------------------------------------------------|
-| **app-name**        |          | Name of the application.                                                                |
-| **git-url**         |          | URL of the git repository for the application source code.                              |
-| **image-url**       |          | URL of the container image to publish.                                                  |
-| **image-namespace** |          | Namespace of the container image url (i.e. quay.io/**<image-namespace>**/greeting-api). |
-| git-revision        | `main`   | Revision to checkout for the git repository.                                            |
-| image-tag           | `latest` | Tag of the image to publish.                                                            |
-| env-dev             | `dev`    | Name/suffix for the development environment.                                            |
-| mock-webhooks       | `true`   | Toggle whether webhooks are mocked.                                                     |
-
+| Name           | Type   | Default           | Description                                                                |
+| -------------- | ------ | ----------------- | -------------------------------------------------------------------------- |
+| git-url        | string |                   | URL of the git repository containing application source code.              |
+| git-revision   | string | `main`            | Git revision to checkout for `git-url`.                                    |
+| image-url      | string |                   | URL of the container image to publish. Should not include a tag or digest. |
+| image-tag      | string | `latest`          | Tag of the container image to publish.                                     |
+| dockerfile     | string | `./Containerfile` | Path to the Dockerfile to build.                                           |
+| k8s-git-url    | string |                   | URL of the git repository containing k8s manifests.                        |
+| k8s-git-branch | string | `main`            | Git revision to checkout for `k8s-git-url`                                 |
+| overlay-path   | string | `overlays/dev`    | Path to the Kustomize overlay to update.                                   |
 
 ### Workspaces
 
-| Name    | Description                                                                                                    |
-|---------|----------------------------------------------------------------------------------------------------------------|
-| source  | Holds the application source code.                                                                             |
-| scratch | An ephemeral workspace used for tasks that require a workspace but do not need to share data from other tasks. |
+| Name       | Optional | Read-Only | Description                                                                            |
+| ---------- | -------- | --------- | -------------------------------------------------------------------------------------- |
+| source     | false    | false     | A workspace to hold the application source code repository.                            |
+| k8s-source | false    | false     | A workspace to hold the kustomize repository for the application.                      |
+| scratch    | false    | false     | A throwaway workspace used for tasks that require a workspace that should be optional. |
 
-### Tasks
-
-| Name             | Task Name                           | Task Type   | Description                                                                                                                                                                                   |
-|------------------|-------------------------------------|-------------|-----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
-| clean            | [script-185](/tasks#script-x)       | Task        | Deletes the `./target` directory from the *source* workspace.[^1]                                                                                                                             |
-| clone            | git-clone                           | ClusterTask | Clones the git repository into the *source* workspace.                                                                                                                                        |
-| test             | maven                               | ClusterTask | Runs `mvn verify` in the *source* workspace.                                                                                                                                                  |
-| build            | buildah                             | ClusterTask | Builds a container image from `./Containerfile`.                                                                                                                                              |
-| tag-image-dev    | skopeo-copy                         | ClusterTask | Tags the container image with the development environment tag. This should result in the [deploy](#deploy) being triggered.                                                                   |
-| mock-webhook[^2] | [quay-webhook](/tasks#quay-webhook) | Task        | If the *mock-webhooks* parameter is set to `true`, this sends a mocked [Quay: Repository Push](https://docs.quay.io/guides/notifications.html#repository-push) webhook to the event listener. |
-
-[^1]: Typically, this would be performed by the *clone* task, but due to permissions issues this task has been added as a workaround.
-[^2]: This is only required as my local cluster is not internet facing, and therefore cannot be automatically triggered via webhooks from external sources.
 
 ## ci-react
 
 A CI pipeline for simple react applications.
-This pipeline is used by [greeting-ui](https://github.com/tom-stockwell/greeting-ui) application.
-It is conceptually very similar to the [ci-quarkus](#ci-quarkus) pipeline.
+
+This pipeline will test the react application before building & publishing a container image.
+A kustomize overlay from the given repository will then be updated with the new image details.
+
+A graph of the pipeline tasks can be seen below:
 
 ```mermaid
 flowchart LR
     clean-->clone
     clone-->install-deps
-    clone-->build
     install-deps-->test
-    build-->tag-image-dev
-    test-->tag-image-dev
-    tag-image-dev-->mock-webhook
+    clone-->build
+    build-->truncate-digest
+    k8s-clone-->update-image
+    truncate-digest-->update-image
+    test-->update-image
 ```
 
 ### Parameters
 
-| Name                | Default  | Description                                                                            |
-|---------------------|----------|----------------------------------------------------------------------------------------|
-| **app-name**        |          | Name of the application.                                                               |
-| **git-url**         |          | URL of the git repository for the application source code.                             |
-| **image-url**       |          | URL of the container image to publish.                                                 |
-| **image-namespace** |          | Namespace of the container image url (i.e. quay.io/**<image-namespace>**/greeting-ui). |
-| git-revision        | `main`   | Revision to checkout for the git repository.                                           |
-| image-tag           | `latest` | Tag of the image to publish.                                                           |
-| env-dev             | `dev`    | Name/suffix for the development environment.                                           |
-| mock-webhooks       | `true`   | Toggle whether webhooks are mocked.                                                    |
+| Name           | Type   | Default                                     | Description                                                             |
+| -------------- | ------ | ------------------------------------------- | ----------------------------------------------------------------------- |
+| git-url        | string |                                             | URL of the git repository containing application source code.           |
+| git-revision   | string | `main`                                      | Git revision to checkout for `git-url.                                  |
+| image-url      | string |                                             | URL of the container image to publish.
+Should not have a tag or digest. |
+| image-tag      | string | `latest`                                    | Tag of the container image to publish.                                  |
+| dockerfile     | string | `./Containerfile`                           | Path to the Dockerfile to build.                                        |
+| k8s-git-url    | string |                                             | URL of the git repository containing k8s manifests.                     |
+| k8s-git-branch | string | `main`                                      | Git revision to checkout for `k8s-git-url`                              |
+| overlay-path   | string | `overlays/dev`                              | Path to the Kustomize overlay to update.                                |
+| nodejs-image   | string | `registry.access.redhat.com/ubi8/nodejs-16` | The image to use for NodeJS tasks.                                      |
 
 ### Workspaces
 
-| Name    | Description                                                                                                    |
-|---------|----------------------------------------------------------------------------------------------------------------|
-| source  | Holds the application source code.                                                                             |
-| scratch | An ephemeral workspace used for tasks that require a workspace but do not need to share data from other tasks. |
+| Name       | Optional | Read-Only | Description                                                       |
+| ---------- | -------- | --------- | ----------------------------------------------------------------- |
+| source     | false    | false     | A workspace to hold the application source code repository.       |
+| k8s-source | false    | false     | A workspace to hold the kustomize repository for the application. |
 
-### Tasks
-
-| Name             | Task Name                           | Task Type   | Description                                                                                                                                                                                   |
-|------------------|-------------------------------------|-------------|-----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
-| clean            | [script-1001](/tasks#script-x)      | Task        | Deletes the `./node_modules` directory from the *source* workspace.[^1]                                                                                                                       |
-| clone            | git-clone                           | ClusterTask | Clones the git repository into the *source* workspace.                                                                                                                                        |
-| install-deps     | [npm](/tasks#npm)                   | Task        | Runs `npm ci` in the *source* workspace.                                                                                                                                                      |
-| test             | [npm](/tasks#npm)                   | Task        | Runs `npm test` in the *source* workspace.                                                                                                                                                    |
-| build            | buildah                             | ClusterTask | Builds a container image from `./Containerfile`.                                                                                                                                              |
-| tag-image-dev    | skopeo-copy                         | ClusterTask | Tags the container image with the development environment tag. This should result in the [deploy](#deploy) pipeline being triggered.                                                          |
-| mock-webhook[^2] | [quay-webhook](/tasks#quay-webhook) | Task        | If the *mock-webhooks* parameter is set to `true`, this sends a mocked [Quay: Repository Push](https://docs.quay.io/guides/notifications.html#repository-push) webhook to the event listener. |
-
-## deploy
-
-A pipeline which deploys a given image to a given environment/namespace using Argo CD.
-
-```mermaid
-flowchart LR
-    image-digest-->update-image-ref
-    clone-->update-image-ref
-    update-image-ref-->commit
-    commit-->argo-sync
-    argo-sync-->tag-image-stage
-    tag-image-stage-->mock-webhook-stage
-    argo-sync-->tag-image-prod
-    tag-image-prod-->mock-webhook-prod
-```
-
-### Parameters
-
-| Name                  | Default          | Description                                                                            |
-|-----------------------|------------------|----------------------------------------------------------------------------------------|
-| **app-name**          |                  | Name of the application.                                                               |
-| **git-url**           |                  | URL of the git repository for the application k8s resources source.                    |
-| **image-url**         |                  | URL of the container image to deploy.                                                  |
-| **image-namespace**   |                  | Namespace of the container image url (i.e. quay.io/**<image-namespace>**/greeting-ui). |
-| image-tag             | `latest`         | Tag of the image to deploy.                                                            |
-| environment           | `dev`            | Environment to deploy to.                                                              |
-| mock-webhooks         | `false`          | Toggle whether webhooks are mocked.                                                    |
-| git-branch            | `main`           | Branch of the git repository.                                                          |
-| git-username          | `ci`             | Username of the git committer                                                          |
-| git-email             | `ci@example.com` | Email of the git committer.                                                            |
-| git-primary-message   | `Deploy to `     | Prefix for first line of the commit message. Environment name will be appended.        |
-| git-secondary-message | `- image: `      | Prefix for second line of the commit message. Full image name will be appended.        |
-| env-dev               | `dev`            | Name/suffix for the development environment.                                           |
-| env-stage             | `stage`          | Name/suffix for the staging environment.                                               |
-| env-prod              | `prod`           | Name/suffix for the prodution environment.                                             |
-
-### Workspaces
-
-| Name    | Description                                                                                                    |
-|---------|----------------------------------------------------------------------------------------------------------------|
-| source  | Holds the application k8s resources source.                                                                    |
-| scratch | An ephemeral workspace used for tasks that require a workspace but do not need to share data from other tasks. |
-
-### Tasks
-
-| Name                   | Task Name                                                     | Task Type   | Description                                                                                                                                                                                   |
-|------------------------|---------------------------------------------------------------|-------------|-----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
-| image-digest           | [image-digest](/tasks#image-digest)                           | Task        | Gets the image digest of the given image URL and tag combination.                                                                                                                             |
-| clone                  | git-clone                                                     | ClusterTask | Clones the git repository into the *source* workspace.                                                                                                                                        |
-| update-image-ref       | [kustomize](/tasks#kustomize)                                 | Task        | Updates the kustomize image reference for the given environment in the *source* workspace with the digest retrieved from the *image-digest* step.                                             |
-| commit                 | git-cli                                                       | ClusterTask | Commits and pushes the repository updates in the *source* workspace to the given branch. Does nothing if there are no changes needed.                                                         |
-| argo-sync              | [argocd-task-sync-and-wait](/tasks#argocd-task-sync-and-wait) | Task        | Initiates a sync for the relevant Argo CD application and waits for it to complete.                                                                                                           |
-| tag-image-stage        | skopeo-copy                                                   | ClusterTask | Tags the container image with the staging environment tag. This should result in the [deploy](#deploy) pipeline being triggered again.                                                        |
-| mock-webhook-stage[^2] | [quay-webhook](/tasks#quay-webhook)                           | Task        | If the *mock-webhooks* parameter is set to `true`, this sends a mocked [Quay: Repository Push](https://docs.quay.io/guides/notifications.html#repository-push) webhook to the event listener. |
-| tag-image-prod         | skopeo-copy                                                   | ClusterTask | Tags the container image with the production environment tag.                                                                                                                                 |
-| mock-webhook-prod[^2]  | [quay-webhook](/tasks#quay-webhook)                           | Task        | If the *mock-webhooks* parameter is set to `true`, this sends a mocked [Quay: Repository Push](https://docs.quay.io/guides/notifications.html#repository-push) webhook to the event listener. |
-
-## To Do
-- Make the pipelines more re-usable
-  - Requires more details to be parameterised (e.g. Containerfile path)
-- Investigate environment logic into custom webhook
-- "Manual" approval of the deployment process, triggered via PR
