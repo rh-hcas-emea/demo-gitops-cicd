@@ -12,9 +12,8 @@ main() {
 }
 
 print_markdown() {
-  echo "# Tasks"
-  for f in "$TASKS_DIR"/*.yml; do
-#    if [ "$(basename "$f")" == "echo.yml" ]; then
+  echo "# Pipelines"
+  for f in "$PIPELINES_DIR"/*.yml; do
     if [ "$(basename "$f")" != "kustomization.yml" ]; then
       name="$(yq '.metadata.name' "$f")"
 
@@ -22,7 +21,6 @@ print_markdown() {
       yq '.spec.description' "$f"
 
       print_params "$f"
-      print_results "$f"
       print_workspaces "$f"
     fi
   done

@@ -3,12 +3,45 @@ kind: Pipeline
 metadata:
   name: argo-postsync
 spec:
-  workspaces:
-    - name: source
+  description: |-
+    An ArgoCD postsync pipeline for simple applications.
+  
+    This pipeline should be triggered by a postsync ArgoCD hook.
+    
+    The pipeline will test the application that was just deployed, before updating the next environment in the pipeline with the successfully tested image.
+    In the case of a production change, a PR will be created instead of the changes being merged automatically.
+    
+    ### Tasks
+
+    ```mermaid
+    flowchart LR
+        clone-tests-->smoke-tests
+        smoke-tests-->system-tests
+        clone-k8s-->get-digest
+        get-digest-->truncate-digest
+        truncate-digest-->get-branch
+        next-env-->get-branch
+        get-branch-->update-image
+        system-tests-->update-image
+    ```
+    
+    | Name             | Description                                                                                                        |
+    |------------------|--------------------------------------------------------------------------------------------------------------------|
+    | clone-tests[^1]  | Clones the test repository.                                                                                        |
+    | smoke-tests[^1]  | TODO: Runs smoke tests from the test repository.                                                                   |
+    | system-tests[^1] | TODO: Runs system/integration tests from the test repository. Skipped in production.                               |
+    | clone-k8s        | Clones the kustomization repository.                                                                               |
+    | get-digest       | Extracts the digest of the application image used in the current environment.                                      |
+    | truncate-digest  | Gets a truncated version of the digest hash.                                                                       |
+    | next-env         | Determines the next environment to update.                                                                         |
+    | get-branch       | Determines the git branch to push kustomization changes to.                                                        |
+    | update-image     | Updates the image in the environment overlay determined by `next-env` with the image digest found in `get-digest`. |
+    
+    [^1]: These tasks have yet to be implemented and are currently placeholders.
   params:
     - name: image-url
       type: string
-      description: |
+      description: >-
         URL of the container image to promote.
         Should not have a tag or digest.
 
@@ -23,10 +56,7 @@ spec:
     - name: git-branch-default
       type: string
       default: main
-      description: |
-        Default branch of the git repository.
-        This branch will be used for updates to dev & stage.
-        The PR for prod will target this branch.
+      description: Default branch of the git repository.
 
     - name: overlays-path
       type: string
@@ -50,6 +80,10 @@ spec:
       type: string
       default: github-demo-gitops-cicd-token
       description: Name of the Secret that contains the GitHub token for PR creation.
+
+  workspaces:
+    - name: source
+      description: A workspace to hold the kustomize repository for the application.
 
   # todo: include smoke tests, system tests, etc.
   tasks:
@@ -90,7 +124,7 @@ spec:
     ############# UPDATE NEXT ENVIRONMENT #############
 
     # Note: None of these should be run when running the postsync for prod.
-    #       To ensure compatibility with the `scope-when-expressions-to-task` setting,
+    #       To ensure compatibility with the `scope-when-expressions-to-task` feature flag,
     #       the `when` guard has been added to all the below tasks.
 
     - name: next-env

@@ -3,9 +3,26 @@ kind: Pipeline
 metadata:
   name: ci-react
 spec:
-  workspaces:
-    - name: source
-    - name: k8s-source
+  description: |-
+    A CI pipeline for simple react applications.
+
+    This pipeline will test the react application before building & publishing a container image.
+    A kustomize overlay from the given repository will then be updated with the new image details.
+
+    A graph of the pipeline tasks can be seen below:
+
+    ```mermaid
+    flowchart LR
+        clean-->clone
+        clone-->install-deps
+        install-deps-->test
+        clone-->build
+        build-->truncate-digest
+        k8s-clone-->update-image
+        truncate-digest-->update-image
+        test-->update-image
+    ```
+
   params:
     - name: git-url
       type: string
@@ -18,7 +35,7 @@ spec:
 
     - name: image-url
       type: string
-      description: |
+      description: |-
         URL of the container image to publish.
         Should not have a tag or digest.
 
@@ -50,6 +67,13 @@ spec:
       type: string
       default: registry.access.redhat.com/ubi8/nodejs-16
       description: The image to use for NodeJS tasks.
+
+  workspaces:
+    - name: source
+      description: A workspace to hold the application source code repository.
+
+    - name: k8s-source
+      description: A workspace to hold the kustomize repository for the application.
 
   tasks:
     - name: clean

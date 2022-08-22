@@ -3,10 +3,24 @@ kind: Pipeline
 metadata:
   name: ci-quarkus
 spec:
-  workspaces:
-    - name: source
-    - name: k8s-source
-    - name: scratch
+  description: |-
+    A CI pipeline for simple quarkus applications.
+    
+    This pipeline will test the quarkus application before building & publishing a container image.
+    A kustomize overlay from the given repository will then be updated with the new image details.
+    
+    A graph of the pipeline tasks can be seen below:
+
+    ```mermaid
+    flowchart LR
+        clean-->clone
+        clone-->test
+        clone-->build
+        build-->truncate-digest
+        k8s-clone-->update-image
+        truncate-digest-->update-image
+        test-->update-image
+    ```
   params:
     - name: git-url
       type: string
@@ -19,9 +33,9 @@ spec:
 
     - name: image-url
       type: string
-      description: |
+      description: >-
         URL of the container image to publish.
-        Should not have a tag or digest.
+        Should not include a tag or digest.
 
     - name: image-tag
       type: string
@@ -46,6 +60,16 @@ spec:
       type: string
       default: overlays/dev
       description: Path to the Kustomize overlay to update.
+
+  workspaces:
+    - name: source
+      description: A workspace to hold the application source code repository.
+
+    - name: k8s-source
+      description: A workspace to hold the kustomize repository for the application.
+
+    - name: scratch
+      description: A throwaway workspace used for tasks that require a workspace that should be optional.
 
   tasks:
     - name: clean
