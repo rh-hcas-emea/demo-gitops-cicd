@@ -1,9 +1,0 @@
-apiVersion: triggers.tekton.dev/v1alpha1
-kind: EventListener
-metadata:
-  name: greeting-cd-listener
-spec:
-  serviceAccountName: pipeline
-  namespaceSelector:
-    matchNames:
-      - demo-gitops-cicd-cicd

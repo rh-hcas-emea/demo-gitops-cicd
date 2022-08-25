@@ -1,0 +1,26 @@
+apiVersion: tekton.dev/v1beta1
+kind: Task
+metadata:
+  name: echo
+spec:
+  description: |-
+    This task can be used to run an `echo` command.
+
+    It can be used for debugging purposes, or as a 'no-op' task.
+
+  params:
+    - name: args
+      type: array
+      default: []
+      description: The arguments to pass to echo.
+
+    - name: image
+      type: string
+      default: registry.access.redhat.com/ubi8-minimal
+      description: The image used to run the `echo` command.
+  steps:
+    - name: echo
+      image: $(params.image)
+      command: ['echo']
+      args:
+        - "$(params.args[*])"

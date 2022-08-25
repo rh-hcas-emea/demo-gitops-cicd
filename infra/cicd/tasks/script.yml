@@ -1,0 +1,35 @@
+apiVersion: tekton.dev/v1beta1
+kind: Task
+metadata:
+  name: script
+spec:
+  description: This task allows users to run an arbitrary script.
+  params:
+    - name: script
+      type: string
+      description: The script to run.
+
+    - name: image
+      type: string
+      default: registry.access.redhat.com/ubi8-minimal
+      description: The image used to run the script.
+
+    - name: workingDir
+      type: string
+      default: .
+      description: The directory to run the script in.
+
+  results:
+    - name: output
+      description: Any results of the script.
+
+  workspaces:
+    - name: workspace
+      optional: true
+      description: An optional workspace that contains files that may be needed by the script.
+
+  steps:
+    - name: script
+      image: $(params.image)
+      script: $(params.script)
+      workingDir: $(params.workingDir)

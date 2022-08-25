@@ -2,7 +2,7 @@
 
 set -x
 
-SCRIPT_DIR=$( cd -- "$( dirname -- "${BASH_SOURCE[0]}" )" &> /dev/null && pwd )
+SCRIPT_DIR=$( realpath "$( dirname "${BASH_SOURCE[0]}" )")
 
 #ROUTE=$(oc get routes webhooks -o template='{{.spec.host}}')
 ROUTE='webhooks.demo-gitops-cicd-cicd.apps.paas.lab.stocky37.dev'

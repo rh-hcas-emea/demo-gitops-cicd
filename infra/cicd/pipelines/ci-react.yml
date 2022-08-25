@@ -1,0 +1,201 @@
+apiVersion: tekton.dev/v1beta1
+kind: Pipeline
+metadata:
+  name: ci-react
+spec:
+  description: |-
+    A CI pipeline for simple React applications.
+
+    This pipeline will test the React application before building & publishing a container image.
+    A kustomize overlay from the given repository will then be updated with the new image details.
+
+    ### Tasks
+
+    ```mermaid
+    flowchart LR
+        clean-->clone
+        clone-->install-deps
+        install-deps-->test
+        clone-->build
+        build-->truncate-digest
+        k8s-clone-->update-image
+        truncate-digest-->update-image
+        test-->update-image
+    ```
+  
+    | Name            | Description                                                                               |
+    |-----------------|-------------------------------------------------------------------------------------------|
+    | clean           | Cleans the source workspace.[^2]                                                          |
+    | clone           | Clones the application source repository into the `source` workspace.                     |
+    | install-deps    | Install application dependencies.                                                         |
+    | test            | Runs unit tests.                                                                          |
+    | build           | Builds & publishes a container image for the application.                                 |
+    | truncate-digest | Gets a truncated version of the digest hash from the result of `build`.                   |
+    | k8s-clone       | Clones the kustomization repository for the application.                                  |
+    | get-branch      | Determines the git branch to push kustomization changes to.                               |
+    | update-image    | Updates the image in the dev environment overlay image digest from the result of `build`. |
+
+params:
+    - name: git-url
+      type: string
+      description: URL of the git repository containing application source code.
+
+    - name: git-revision
+      type: string
+      default: main
+      description: Git revision to checkout for `git-url.
+
+    - name: image-url
+      type: string
+      description: |-
+        URL of the container image to publish.
+        Should not have a tag or digest.
+
+    - name: image-tag
+      type: string
+      default: latest
+      description: Tag of the container image to publish.
+
+    - name: dockerfile
+      type: string
+      default: ./Containerfile
+      description: Path to the Dockerfile to build.
+
+    - name: k8s-git-url
+      type: string
+      description: URL of the git repository containing k8s manifests.
+
+    - name: k8s-git-branch
+      type: string
+      default: main
+      description: Git revision to checkout for `k8s-git-url`
+
+    - name: overlay-path
+      type: string
+      default: overlays/dev
+      description: Path to the Kustomize overlay to update.
+
+    - name: nodejs-image
+      type: string
+      default: registry.access.redhat.com/ubi8/nodejs-16
+      description: The image to use for NodeJS tasks.
+
+workspaces:
+  - name: source
+    description: A workspace to hold the application source code repository.
+
+  - name: k8s-source
+    description: A workspace to hold the kustomize repository for the application.
+
+tasks:
+  - name: clean
+    taskRef:
+      name: script-1001
+    workspaces:
+      - name: workspace
+        workspace: source
+    params:
+      - name: script
+        value: rm -rf node_modules
+      - name: workingDir
+        value: $(workspaces.workspace.path)
+
+  - name: clone
+    taskRef:
+      name: git-clone
+      kind: ClusterTask
+    runAfter: ['clean']
+    workspaces:
+      - name: output
+        workspace: source
+    params:
+      - name: url
+        value: $(params.git-url)
+      - name: revision
+        value: $(params.git-revision)
+
+  - name: install-deps
+    taskRef:
+      name: npm
+    runAfter: ['clone']
+    workspaces:
+      - name: source
+        workspace: source
+    params:
+      - name: ARGS
+        value: ['ci', '--verbose', '--no-audit']
+      - name: IMAGE
+        value: $(params.nodejs-image)
+
+  - name: test
+    taskRef:
+      name: npm
+    runAfter: ['install-deps']
+    workspaces:
+      - name: source
+        workspace: source
+    params:
+      - name: ARGS
+        value: ['test']
+      - name: IMAGE
+        value: $(params.nodejs-image)
+
+  - name: build
+    taskRef:
+      name: buildah
+      kind: ClusterTask
+    runAfter: ['clone']
+    workspaces:
+      - name: source
+        workspace: source
+    params:
+      - name: DOCKERFILE
+        value: ./Containerfile
+      - name: IMAGE
+        value: $(params.image-url):$(params.image-tag)
+
+  - name: truncate-digest
+    taskRef:
+      name: truncate-string
+    runAfter:
+      - build
+    params:
+      - name: input
+        value: $(tasks.build.results.IMAGE_DIGEST)
+      - name: start
+        value: '8'
+      - name: end
+        value: '19'
+
+  - name: k8s-clone
+    taskRef:
+      name: git-clone
+      kind: ClusterTask
+    workspaces:
+      - name: output
+        workspace: k8s-source
+    params:
+      - name: url
+        value: $(params.k8s-git-url)
+      - name: revision
+        value: $(params.k8s-git-branch)
+
+  - name: update-image
+    taskRef:
+      name: kustomize-set-image
+    runAfter:
+      - k8s-clone
+      - truncate-digest
+      - test
+    workspaces:
+      - name: source
+        workspace: k8s-source
+    params:
+      - name: image-url
+        value: $(params.image-url)@$(tasks.build.results.IMAGE_DIGEST)
+      - name: path
+        value: $(params.overlay-path)
+      - name: git-branch
+        value: $(params.k8s-git-branch)
+      - name: git-message
+        value: Promote $(tasks.truncate-digest.results.output) to dev

@@ -1,0 +1,113 @@
+apiVersion: tekton.dev/v1beta1
+kind: Task
+metadata:
+  name: kustomize-set-image
+spec:
+  description: |-
+    This task can be used to run `kustomize set image` and commit the result.
+    This can be used to promote images between overlays.
+
+  params:
+    - name: image-url
+      type: string
+      description: >-
+        The URL of the container image to set.
+        Should include any relevant digests or tags.
+
+    - name: path
+      type: string
+      default: .
+      description: >-
+        The directory within which kustomize will be run.
+        Should be relative to the `source` workspace.
+
+    - name: git-branch
+      type: string
+      default: main
+      description: The git branch to push changes to.
+
+    - name: git-username
+      type: string
+      default: ci
+      description: The username of the git committer.
+
+    - name: git-email
+      type: string
+      default: 101870882+stocky37-robot@users.noreply.github.com
+      description: The email of the git committer.
+
+    - name: git-message
+      type: string
+      default: Update image
+      description: The first line of the commit message.
+
+    # step images
+    - name: kustomize-image
+      type: string
+      default: k8s.gcr.io/kustomize/kustomize:v4.5.5
+      description: The image used to run kustomize.
+
+    - name: git-image
+      type: string
+      default: docker.io/alpine/git:v2.26.2
+      description: The image used to run git.
+
+  results:
+    - name: commit
+      description: The precise commit SHA after the git operation.
+
+  workspaces:
+    - name: source
+      description: A workspace that contains a git repository that contains kustomizations.
+
+  steps:
+    - name: kustomize
+      image: $(params.kustomize-image)
+      workingDir: $(workspaces.source.path)/$(params.path)
+      env:
+        - name: IMAGE
+          value: $(params.image-url)
+      script: |
+        #!/usr/bin/env sh
+        set -eux
+        pwd
+        kustomize edit set image "$IMAGE"
+
+    # primarily copied from the git-cli ClusterTask
+    - name: git-commit
+      image: $(params.git-image)
+      workingDir: $(workspaces.source.path)
+      env:
+        - name: IMAGE
+          value: $(params.image-url)
+        - name: GIT_MESSAGE
+          value: $(params.git-message)
+        - name: GIT_BRANCH
+          value: $(params.git-branch)
+        - name: GIT_EMAIL
+          value: $(params.git-email)
+        - name: GIT_USERNAME
+          value: $(params.git-username)
+
+      script: |
+        #!/usr/bin/env sh
+        set -eux
+        
+        # Setting up the config for the git.
+        git config --global user.email "$GIT_EMAIL"
+        git config --global user.name "$GIT_USERNAME"
+        
+        # Commit & push changes
+        git commit -am "$GIT_MESSAGE" -m "- image: $IMAGE" || true
+        git push origin "HEAD:refs/heads/$GIT_BRANCH"
+        
+        # Output sha into results
+        RESULT_SHA="$(git rev-parse HEAD | tr -d '\n')"
+        EXIT_CODE="$?"
+        if [ "$EXIT_CODE" != 0 ]
+        then
+          exit $EXIT_CODE
+        fi
+        
+        # Make sure we don't add a trailing newline to the result!
+        echo -n "$RESULT_SHA" > $(results.commit.path)

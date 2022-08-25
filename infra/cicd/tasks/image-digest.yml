@@ -1,0 +1,27 @@
+apiVersion: tekton.dev/v1beta1
+kind: Task
+metadata:
+  name: image-digest
+spec:
+  description: |-
+      This task can be used to find the image digest of a given container image.
+      It uses [skopeo](https://github.com/containers/skopeo) to inspect and output the image digest.
+  params:
+    - name: image
+      type: string
+      description: The image to find the digest of.
+
+    - name: skopeo-image
+      type: string
+      default: registry.access.redhat.com/ubi8/skopeo
+      description: The image used to run skopeo.
+
+  results:
+    - name: digest
+      description: The digest of the image.
+
+  steps:
+    - name: inspect
+      image: $(params.skopeo-image)
+      script: |
+        skopeo inspect $(params.image) --format "{{.Digest}}" | tee '$(results.digest.path)'

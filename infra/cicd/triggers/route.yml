@@ -1,0 +1,15 @@
+apiVersion: route.openshift.io/v1
+kind: Route
+metadata:
+  name: webhooks
+  labels:
+    app.kubernetes.io/part-of: Triggers
+    eventlistener: webhooks
+spec:
+  port:
+    targetPort: http-listener
+  to:
+    kind: Service
+    name: el-webhooks
+    weight: 100
+  wildcardPolicy: None

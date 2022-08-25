@@ -1,0 +1,264 @@
+apiVersion: tekton.dev/v1beta1
+kind: Pipeline
+metadata:
+  name: argo-postsync
+spec:
+  description: |-
+    An ArgoCD postsync pipeline for simple applications.
+  
+    This pipeline should be triggered by a postsync ArgoCD hook.
+    
+    The pipeline will test the application that was just deployed, before updating the next environment in the pipeline with the successfully tested image.
+    In the case of a production change, a PR will be created instead of the changes being merged automatically.
+    
+    ### Tasks
+
+    ```mermaid
+    flowchart LR
+        clone-tests-->smoke-tests
+        smoke-tests-->system-tests
+        clone-k8s-->get-digest
+        get-digest-->truncate-digest
+        truncate-digest-->get-branch
+        next-env-->get-branch
+        get-branch-->update-image
+        system-tests-->update-image
+    ```
+    
+    | Name             | Description                                                                                                        |
+    |------------------|--------------------------------------------------------------------------------------------------------------------|
+    | clone-tests[^1]  | Clones the test repository.                                                                                        |
+    | smoke-tests[^1]  | TODO: Runs smoke tests from the test repository.                                                                   |
+    | system-tests[^1] | TODO: Runs system/integration tests from the test repository. Skipped in production.                               |
+    | clone-k8s        | Clones the kustomization repository.                                                                               |
+    | get-digest       | Extracts the digest of the application image used in the current environment.                                      |
+    | truncate-digest  | Gets a truncated version of the digest hash.                                                                       |
+    | next-env         | Determines the next environment to update.                                                                         |
+    | get-branch       | Determines the git branch to push kustomization changes to.                                                        |
+    | update-image     | Updates the image in the environment overlay determined by `next-env` with the image digest found in `get-digest`. |
+    
+    [^1]: These tasks have yet to be implemented and are currently placeholders.
+
+  params:
+    - name: image-url
+      type: string
+      description: >-
+        URL of the container image to promote.
+        Should not have a tag or digest.
+
+    - name: git-url
+      type: string
+      description: URL of the git repository containing kustomize manifests to update.
+
+    - name: git-repo-full-name
+      type: string
+      description: The full repository name (e.g. `tektoncd/catalog`).
+
+    - name: git-branch-default
+      type: string
+      default: main
+      description: Default branch of the git repository.
+
+    - name: overlays-path
+      type: string
+      default: overlays
+      description: Path to the directory containing the environment overlays.
+
+    - name: environment
+      type: string
+      description: The environment that was just synced.
+
+    - name: environments
+      type: array
+      default:
+        - dev
+        - stage
+        - prod
+      description: The sequential list of environments to deploy to.
+
+
+    - name: github-token-secret-name
+      type: string
+      default: github-demo-gitops-cicd-token
+      description: Name of the Secret that contains the GitHub token for PR creation.
+
+  workspaces:
+    - name: source
+      description: A workspace to hold the kustomize repository for the application.
+
+  # todo: include smoke tests, system tests, etc.
+  tasks:
+
+    ############# MOCK TEST TASKS #############
+    - name: clone-tests
+      taskRef:
+        name: echo
+      params:
+        - name: args
+          value:
+            - 'Clone tests repo'
+
+    - name: smoke-tests
+      taskRef:
+        name: echo
+      runAfter:
+        - clone-tests
+      params:
+        - name: args
+          value:
+            - 'Run smoke tests'
+
+    - name: system-tests
+      taskRef:
+        name: echo
+      runAfter:
+        - smoke-tests
+      when:
+        - input: $(params.environment)
+          operator: notin
+          values: ['prod']
+      params:
+        - name: args
+          value:
+            - 'Run system tests'
+
+    ############# UPDATE NEXT ENVIRONMENT #############
+
+    # Note: None of these should be run when running the postsync for prod.
+    #       To ensure compatibility with the `scope-when-expressions-to-task` feature flag,
+    #       the `when` guard has been added to all the below tasks.
+
+    - name: next-env
+      taskRef:
+        name: array-find
+      when:
+        - input: $(params.environment)
+          operator: notin
+          values: ['prod']
+      params:
+        - name: item
+          value: $(params.environment)
+        - name: items
+          value: $(params.environments)
+
+    - name: clone-k8s
+      taskRef:
+        name: git-clone
+        kind: ClusterTask
+      when:
+        - input: $(params.environment)
+          operator: notin
+          values: ['prod']
+      workspaces:
+        - name: output
+          workspace: source
+      params:
+        - name: url
+          value: $(params.git-url)
+        - name: revision
+          value: $(params.git-branch-default)
+
+    - name: get-digest
+      taskRef:
+        name: kustomize-get-digest
+      runAfter:
+        - clone-k8s
+      when:
+        - input: $(params.environment)
+          operator: notin
+          values: ['prod']
+      workspaces:
+        - name: input
+          workspace: source
+      params:
+        - name: image-name
+          value: $(params.image-url)
+        - name: path
+          value: $(params.overlays-path)/$(params.environment)
+
+    - name: truncate-digest
+      taskRef:
+        name: truncate-string
+      runAfter:
+        - get-digest
+      when:
+        - input: $(params.environment)
+          operator: notin
+          values: ['prod']
+      params:
+        - name: input
+          value: $(tasks.get-digest.results.digest)
+        - name: start
+          value: '8'
+        - name: end
+          value: '19'
+
+    - name: get-branch
+      taskRef:
+        name: script
+      runAfter:
+        - truncate-digest
+        - next-env
+      when:
+        - input: $(params.environment)
+          operator: notin
+          values: ['prod']
+      params:
+        - name: script
+          value: |
+            set -eux
+            
+            case "$(tasks.next-env.results.output)" in
+              prod) echo -n "promote-$(tasks.truncate-digest.results.output)-prod" > $(results.output.path) ;;
+              *) echo -n "$(params.git-branch-default)" > $(results.output.path) ;;
+            esac
+
+    - name: update-image
+      taskRef:
+        name: kustomize-set-image
+      runAfter:
+        - system-tests
+        - get-branch
+      when:
+        - input: $(params.environment)
+          operator: notin
+          values: ['prod']
+      workspaces:
+        - name: source
+          workspace: source
+      params:
+        - name: image-url
+          value: $(params.image-url)@$(tasks.get-digest.results.digest)
+        - name: path
+          value: $(params.overlays-path)/$(tasks.next-env.results.next)
+        - name: git-branch
+          value: $(tasks.get-branch.results.output)
+        - name: git-message
+          value: &msg Promote $(tasks.truncate-digest.results.output) to $(tasks.next-env.results.next)
+
+    - name: open-pr
+      taskRef:
+        name: github-open-pr
+      runAfter:
+        - update-image
+      when:
+        - input: $(tasks.next-env.results.next)
+          operator: in
+          values: ['prod']
+        - input: $(params.environment)
+          operator: notin
+          values: ['prod']
+      params:
+        - name: REPO_FULL_NAME
+          value: $(params.git-repo-full-name)
+        - name: HEAD
+          value: $(tasks.get-branch.results.output)
+        - name: BASE
+          value: $(params.git-branch-default)
+        - name: TITLE
+          value: *msg
+        - name: BODY
+          value: ''
+        - name: GITHUB_TOKEN_SECRET_NAME
+          value: $(params.github-token-secret-name)
+
