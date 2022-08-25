@@ -22,7 +22,7 @@ spec:
         truncate-digest-->update-image
         test-->update-image
     ```
-  
+    
     | Name            | Description                                                                               |
     |-----------------|-------------------------------------------------------------------------------------------|
     | clean           | Cleans the source workspace.[^2]                                                          |
@@ -35,7 +35,7 @@ spec:
     | get-branch      | Determines the git branch to push kustomization changes to.                               |
     | update-image    | Updates the image in the dev environment overlay image digest from the result of `build`. |
 
-params:
+  params:
     - name: git-url
       type: string
       description: URL of the git repository containing application source code.
@@ -80,122 +80,122 @@ params:
       default: registry.access.redhat.com/ubi8/nodejs-16
       description: The image to use for NodeJS tasks.
 
-workspaces:
-  - name: source
-    description: A workspace to hold the application source code repository.
+  workspaces:
+    - name: source
+      description: A workspace to hold the application source code repository.
 
-  - name: k8s-source
-    description: A workspace to hold the kustomize repository for the application.
+    - name: k8s-source
+      description: A workspace to hold the kustomize repository for the application.
 
-tasks:
-  - name: clean
-    taskRef:
-      name: script-1001
-    workspaces:
-      - name: workspace
-        workspace: source
-    params:
-      - name: script
-        value: rm -rf node_modules
-      - name: workingDir
-        value: $(workspaces.workspace.path)
+  tasks:
+    - name: clean
+      taskRef:
+        name: script-1001
+      workspaces:
+        - name: workspace
+          workspace: source
+      params:
+        - name: script
+          value: rm -rf node_modules
+        - name: workingDir
+          value: $(workspaces.workspace.path)
 
-  - name: clone
-    taskRef:
-      name: git-clone
-      kind: ClusterTask
-    runAfter: ['clean']
-    workspaces:
-      - name: output
-        workspace: source
-    params:
-      - name: url
-        value: $(params.git-url)
-      - name: revision
-        value: $(params.git-revision)
+    - name: clone
+      taskRef:
+        name: git-clone
+        kind: ClusterTask
+      runAfter: ['clean']
+      workspaces:
+        - name: output
+          workspace: source
+      params:
+        - name: url
+          value: $(params.git-url)
+        - name: revision
+          value: $(params.git-revision)
 
-  - name: install-deps
-    taskRef:
-      name: npm
-    runAfter: ['clone']
-    workspaces:
-      - name: source
-        workspace: source
-    params:
-      - name: ARGS
-        value: ['ci', '--verbose', '--no-audit']
-      - name: IMAGE
-        value: $(params.nodejs-image)
+    - name: install-deps
+      taskRef:
+        name: npm
+      runAfter: ['clone']
+      workspaces:
+        - name: source
+          workspace: source
+      params:
+        - name: ARGS
+          value: ['ci', '--verbose', '--no-audit']
+        - name: IMAGE
+          value: $(params.nodejs-image)
 
-  - name: test
-    taskRef:
-      name: npm
-    runAfter: ['install-deps']
-    workspaces:
-      - name: source
-        workspace: source
-    params:
-      - name: ARGS
-        value: ['test']
-      - name: IMAGE
-        value: $(params.nodejs-image)
+    - name: test
+      taskRef:
+        name: npm
+      runAfter: ['install-deps']
+      workspaces:
+        - name: source
+          workspace: source
+      params:
+        - name: ARGS
+          value: ['test']
+        - name: IMAGE
+          value: $(params.nodejs-image)
 
-  - name: build
-    taskRef:
-      name: buildah
-      kind: ClusterTask
-    runAfter: ['clone']
-    workspaces:
-      - name: source
-        workspace: source
-    params:
-      - name: DOCKERFILE
-        value: ./Containerfile
-      - name: IMAGE
-        value: $(params.image-url):$(params.image-tag)
+    - name: build
+      taskRef:
+        name: buildah
+        kind: ClusterTask
+      runAfter: ['clone']
+      workspaces:
+        - name: source
+          workspace: source
+      params:
+        - name: DOCKERFILE
+          value: ./Containerfile
+        - name: IMAGE
+          value: $(params.image-url):$(params.image-tag)
 
-  - name: truncate-digest
-    taskRef:
-      name: truncate-string
-    runAfter:
-      - build
-    params:
-      - name: input
-        value: $(tasks.build.results.IMAGE_DIGEST)
-      - name: start
-        value: '8'
-      - name: end
-        value: '19'
+    - name: truncate-digest
+      taskRef:
+        name: truncate-string
+      runAfter:
+        - build
+      params:
+        - name: input
+          value: $(tasks.build.results.IMAGE_DIGEST)
+        - name: start
+          value: '8'
+        - name: end
+          value: '19'
 
-  - name: k8s-clone
-    taskRef:
-      name: git-clone
-      kind: ClusterTask
-    workspaces:
-      - name: output
-        workspace: k8s-source
-    params:
-      - name: url
-        value: $(params.k8s-git-url)
-      - name: revision
-        value: $(params.k8s-git-branch)
+    - name: k8s-clone
+      taskRef:
+        name: git-clone
+        kind: ClusterTask
+      workspaces:
+        - name: output
+          workspace: k8s-source
+      params:
+        - name: url
+          value: $(params.k8s-git-url)
+        - name: revision
+          value: $(params.k8s-git-branch)
 
-  - name: update-image
-    taskRef:
-      name: kustomize-set-image
-    runAfter:
-      - k8s-clone
-      - truncate-digest
-      - test
-    workspaces:
-      - name: source
-        workspace: k8s-source
-    params:
-      - name: image-url
-        value: $(params.image-url)@$(tasks.build.results.IMAGE_DIGEST)
-      - name: path
-        value: $(params.overlay-path)
-      - name: git-branch
-        value: $(params.k8s-git-branch)
-      - name: git-message
-        value: Promote $(tasks.truncate-digest.results.output) to dev
+    - name: update-image
+      taskRef:
+        name: kustomize-set-image
+      runAfter:
+        - k8s-clone
+        - truncate-digest
+        - test
+      workspaces:
+        - name: source
+          workspace: k8s-source
+      params:
+        - name: image-url
+          value: $(params.image-url)@$(tasks.build.results.IMAGE_DIGEST)
+        - name: path
+          value: $(params.overlay-path)
+        - name: git-branch
+          value: $(params.k8s-git-branch)
+        - name: git-message
+          value: Promote $(tasks.truncate-digest.results.output) to dev

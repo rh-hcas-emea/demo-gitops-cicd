@@ -3,9 +3,6 @@ kind: Kustomization
 namespace: demo-gitops-cicd-gitops
 
 resources:
+- application-bootstrap.yml
+- applicationset-gitops.yml
 - secret-repo-gitops.yml
-- secret-repo-greeting-ui.yml
-- secret-repo-greeting-api.yml
-- applicationset-gitops-config.yml
-- applicationset-greeting-ui.yml
-- applicationset-greeting-api.yml

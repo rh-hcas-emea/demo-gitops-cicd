@@ -1,0 +1,18 @@
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: bootstrap
+spec:
+  project: default
+  source:
+    repoURL: https://github.com/tom-stockwell/demo-gitops-cicd.git
+    targetRevision: HEAD
+    path: clusters/cluster/gitops
+  destination:
+    server: https://kubernetes.default.svc
+  syncPolicy:
+    automated:
+      prune: true
+      selfHeal: true
+    syncOptions:
+      - ApplyOutOfSyncOnly=true

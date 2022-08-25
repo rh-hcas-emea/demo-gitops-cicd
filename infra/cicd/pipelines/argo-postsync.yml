@@ -139,7 +139,8 @@ spec:
         - name: item
           value: $(params.environment)
         - name: items
-          value: $(params.environments)
+          value:
+            - $(params.environments[*])
 
     - name: clone-k8s
       taskRef:

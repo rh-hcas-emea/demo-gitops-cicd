@@ -1,9 +1,7 @@
 apiVersion: argoproj.io/v1alpha1
 kind: ApplicationSet
 metadata:
-  name: gitops-config
-  labels:
-    type: gitops
+  name: gitops
 spec:
   generators:
     - git:
@@ -11,6 +9,8 @@ spec:
         revision: &rev HEAD
         directories:
           - path: 'clusters/cluster/*'
+          - path: 'clusters/cluster/gitops'
+            exclude: true
   template:
     metadata:
       name: '{{ path.basename }}'
