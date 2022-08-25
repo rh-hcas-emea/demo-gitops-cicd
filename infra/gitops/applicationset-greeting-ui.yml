@@ -1,17 +1,19 @@
 apiVersion: argoproj.io/v1alpha1
 kind: ApplicationSet
 metadata:
-  name: greeting-api
+  name: greeting-ui
+  labels:
+    type: application
 spec:
   generators:
     - git:
-        repoURL: &url https://github.com/tom-stockwell/greeting-api-k8s.git
+        repoURL: &url https://github.com/tom-stockwell/greeting-ui-k8s.git
         revision: &rev HEAD
         directories:
-          - path: overlays/*
+          - path: overlays/cluster/*
   template:
     metadata:
-      name: greeting-api-{{ path.basename }}
+      name: greeting-ui-{{ path.basename }}
     spec:
       project: default
       source:

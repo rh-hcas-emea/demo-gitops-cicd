@@ -6,6 +6,6 @@ resources:
 - secret-repo-gitops.yml
 - secret-repo-greeting-ui.yml
 - secret-repo-greeting-api.yml
-- applicationset-argocd-config.yml
+- applicationset-gitops-config.yml
 - applicationset-greeting-ui.yml
 - applicationset-greeting-api.yml

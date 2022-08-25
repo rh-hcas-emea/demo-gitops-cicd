@@ -1,16 +1,16 @@
 apiVersion: argoproj.io/v1alpha1
 kind: ApplicationSet
 metadata:
-  name: argocd-config
+  name: gitops-config
+  labels:
+    type: gitops
 spec:
   generators:
     - git:
         repoURL: &url https://github.com/tom-stockwell/demo-gitops-cicd.git
         revision: &rev HEAD
         directories:
-          - path: '*'
-          - path: bin
-            exclude: true
+          - path: 'clusters/cluster/*'
   template:
     metadata:
       name: '{{ path.basename }}'
