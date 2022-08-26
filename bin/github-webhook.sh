@@ -4,8 +4,8 @@ set -x
 
 SCRIPT_DIR=$( realpath "$( dirname "${BASH_SOURCE[0]}" )")
 
-#ROUTE=$(oc get routes webhooks -o template='{{.spec.host}}')
-ROUTE='webhooks.demo-gitops-cicd-cicd.apps.paas.lab.stocky37.dev'
+ROUTE=$(oc -n demo-gitops-cicd-cicd get route webhooks -o template='{{.spec.host}}')
+#ROUTE='webhooks.demo-gitops-cicd-cicd.apps.paas.lab.stocky37.dev'
 TEMPLATE_FILE="$SCRIPT_DIR/templates/github.json"
 WEBHOOK_SECRET=secret
 

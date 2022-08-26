@@ -3,3 +3,14 @@ kind: Kustomization
 
 resources:
   - ../../../infra/cicd
+
+patches:
+  - path: patch-triggertemplate-ci.yml
+    target:
+      kind: TriggerTemplate
+      name: ci-.*
+
+  - path: patch-triggertemplate-postsync.yml
+    target:
+      kind: TriggerTemplate
+      name: argo-postsync

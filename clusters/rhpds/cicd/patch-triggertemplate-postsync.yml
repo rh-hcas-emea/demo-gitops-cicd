@@ -1,0 +1,5 @@
+- op: add
+  path: /spec/resourcetemplates/0/spec/params/-
+  value:
+    name: overlays-path
+    value: deploy/rhpds
