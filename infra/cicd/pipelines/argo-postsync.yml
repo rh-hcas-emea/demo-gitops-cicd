@@ -76,11 +76,15 @@ spec:
         - prod
       description: The sequential list of environments to deploy to.
 
-
     - name: github-token-secret-name
       type: string
-      default: github-demo-gitops-cicd-token
-      description: Name of the Secret that contains the GitHub token for PR creation.
+      default: github
+      description: The name of the kubernetes secret that contains the GitHub token for creating PRs
+
+    - name: github-token-secret-key
+      type: string
+      default: token
+      description: The key within the kubernetes secret that contains the GitHub token for creating PRs
 
   workspaces:
     - name: source

@@ -3,9 +3,8 @@ kind: Kustomization
 resources:
   - pvc-greeting-ui-source.yml
   - pvc-greeting-api-source.yml
-  - secret-github-demo-gitops-cicd-token.yml
-  - secret-github-stocky37-robot.yml
-  - secret-tstockwell-quay.yml
+  - secret-github.yml
+  - secret-quay.yml
   - serviceaccount-pipeline.yml
 
 generatorOptions:

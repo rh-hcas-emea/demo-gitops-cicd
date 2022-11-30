@@ -26,6 +26,8 @@ spec:
             value: tom-stockwell/$(tt.params.app-name)-k8s
           - name: environment
             value: $(tt.params.environment)
+          - name: github-token-secret-key
+            value: passsword
         workspaces:
           - name: source
             volumeClaimTemplate:
