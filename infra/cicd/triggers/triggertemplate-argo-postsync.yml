@@ -27,7 +27,7 @@ spec:
           - name: environment
             value: $(tt.params.environment)
           - name: github-token-secret-key
-            value: passsword
+            value: password
         workspaces:
           - name: source
             volumeClaimTemplate:

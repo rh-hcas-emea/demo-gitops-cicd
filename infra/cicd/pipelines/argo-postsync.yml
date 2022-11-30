@@ -173,7 +173,7 @@ spec:
           operator: notin
           values: ['prod']
       workspaces:
-        - name: input
+        - name: source
           workspace: source
       params:
         - name: image-name
@@ -211,9 +211,10 @@ spec:
       params:
         - name: script
           value: |
+            #!/usr/bin/env sh
             set -eux
             
-            case "$(tasks.next-env.results.output)" in
+            case "$(tasks.next-env.results.next)" in
               prod) echo -n "promote-$(tasks.truncate-digest.results.output)-prod" > $(results.output.path) ;;
               *) echo -n "$(params.git-branch-default)" > $(results.output.path) ;;
             esac
@@ -266,4 +267,6 @@ spec:
           value: ''
         - name: GITHUB_TOKEN_SECRET_NAME
           value: $(params.github-token-secret-name)
+        - name: GITHUB_TOKEN_SECRET_KEY
+          value: $(params.github-token-secret-key)
 

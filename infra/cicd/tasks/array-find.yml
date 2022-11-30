@@ -40,16 +40,18 @@ spec:
         - name: ITEM
           value: $(params.item)
       script: |
+        #!/usr/bin/env sh
+
         set -eux
-        
         items=("$@")
         for i in "${!items[@]}"; do
           current="${items[i]}"
           next="${items[i+1]:-}"
-          prev="${items[i-1]:-}"
-          if [[ "$current" == "$ITEM" ]]; then
+          [ "$i" != 0 ] && prev="${items[i-1]:-}"
+        
+          if [ "$current" == "$ITEM" ]; then
             echo -n "$next" > $(results.next.path)
-            echo -n "prev" > $(results.prev.path)
+            echo -n "${prev:-}" > $(results.prev.path)
             echo -n "$i" > $(results.index.path)
             exit 0
           fi

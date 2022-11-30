@@ -16,7 +16,7 @@ spec:
 
     - name: workingDir
       type: string
-      default: .
+      default: /
       description: The directory to run the script in.
 
   results:
