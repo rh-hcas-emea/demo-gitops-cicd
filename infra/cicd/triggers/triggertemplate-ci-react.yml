@@ -25,7 +25,7 @@ spec:
           - name: image-url
             value: quay.io/tstockwell/$(tt.params.git-repo-name)
           - name: k8s-git-url
-            value: git@github.com:tom-stockwell/$(tt.params.git-repo-name)-k8s.git
+            value: https://github.com/tom-stockwell/$(tt.params.git-repo-name)-k8s.git
         workspaces:
           - name: source
             persistentVolumeClaim:
