@@ -1,10 +1,13 @@
 apiVersion: kustomize.config.k8s.io/v1beta1
 kind: Kustomization
+nameSuffix: -prod
 
 resources:
-  - ../../../infra/apps
+  - ../base/applicationset-greeting-app
 
 patches:
-  - path: patch-applicationset.yml
+  - path: patch-applicationset.yaml
     target:
       kind: ApplicationSet
+
+

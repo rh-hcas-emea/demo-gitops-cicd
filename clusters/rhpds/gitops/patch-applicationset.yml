@@ -1,7 +1,0 @@
-- op: replace
-  path: /spec/generators/0/git/directories/0/path
-  value: clusters/rhpds/*
-
-- op: replace
-  path: /spec/generators/0/git/directories/1/path
-  value: clusters/rhpds/gitops

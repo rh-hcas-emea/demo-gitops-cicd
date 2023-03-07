@@ -1,0 +1,15 @@
+# point to the environment directory
+- op: add
+  path: /spec/generators/0/git/directories/-
+  value:
+    path: overlays/dev/*
+
+# suffix the application name with the environment
+- op: replace
+  path: /spec/template/metadata/name
+  value: '{{path.basename}}-dev'
+
+# add a label for the environment to the application template
+- op: add
+  path: /spec/template/metadata/labels/environment
+  value: dev

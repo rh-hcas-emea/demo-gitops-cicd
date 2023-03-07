@@ -1,0 +1,21 @@
+apiVersion: argoproj.io/v1alpha1
+kind: ApplicationSet
+metadata:
+  name: greeting-app
+spec:
+  generators:
+    - git:
+        repoURL: &repo https://github.com/rh-hcas-emea/greeting-app-k8s.git
+        revision: &rev HEAD
+        directories: []
+  template:
+    metadata:
+      name: '{{path.basename}}'
+      labels:
+        type: 'application'
+        app: '{{path.basename}}'
+    spec:
+      source:
+        repoURL: *repo
+        targetRevision: *rev
+        path: '{{path}}'

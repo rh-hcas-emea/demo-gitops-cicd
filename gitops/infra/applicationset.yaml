@@ -1,0 +1,21 @@
+apiVersion: argoproj.io/v1alpha1
+kind: ApplicationSet
+metadata:
+  name: infra
+spec:
+  generators:
+    - git:
+        repoURL: &repo https://github.com/rh-hcas-emea/demo-gitops-cicd.git
+        revision: &rev HEAD
+        directories:
+          - path: infra/*
+  template:
+    metadata:
+      name: 'infra-{{path.basename}}'
+      labels:
+        type: 'infra'
+    spec:
+      source:
+        repoURL: *repo
+        targetRevision: *rev
+        path: '{{path}}'
