@@ -56,10 +56,10 @@ spec:
       default: latest
       description: Tag of the container image to publish.
 
-    - name: dockerfile
+    - name: containerfile
       type: string
       default: ./Containerfile
-      description: Path to the Dockerfile to build.
+      description: Path to the Containerfile to build. Compatible with Dockerfile.
 
     - name: k8s-git-url
       type: string
@@ -86,23 +86,10 @@ spec:
       description: A throwaway workspace used for tasks that require a workspace that should be optional.
 
   tasks:
-    - name: clean
-      taskRef:
-        name: script-185
-      workspaces:
-        - name: workspace
-          workspace: source
-      params:
-        - name: script
-          value: rm -rf target
-        - name: workingDir
-          value: $(workspaces.workspace.path)
-
     - name: clone
       taskRef:
         name: git-clone
         kind: ClusterTask
-      runAfter: ['clean']
       workspaces:
         - name: output
           workspace: source
@@ -138,7 +125,7 @@ spec:
           workspace: source
       params:
         - name: DOCKERFILE
-          value: $(params.dockerfile)
+          value: $(params.containerfile)
         - name: IMAGE
           value: $(params.image-url):$(params.image-tag)
 

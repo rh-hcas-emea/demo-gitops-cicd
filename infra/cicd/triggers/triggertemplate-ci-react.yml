@@ -28,7 +28,6 @@ spec:
             value: https://github.com/rh-hcas-emea/greeting-app-k8s.git
           - name: overlay-path
             value: overlays/dev/$(tt.params.git-repo-name)
-
         workspaces:
           - name: source
             persistentVolumeClaim:
