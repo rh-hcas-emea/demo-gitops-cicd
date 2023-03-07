@@ -4,16 +4,15 @@ set -x
 
 SCRIPT_DIR=$( realpath "$( dirname "${BASH_SOURCE[0]}" )")
 
-ROUTE=$(oc -n demo-gitops-cicd-cicd get route webhooks -o template='{{.spec.host}}')
-#ROUTE='webhooks.demo-gitops-cicd-cicd.apps.paas.lab.stocky37.dev'
+ROUTE=$(oc -n demo-cicd get route webhooks -o template='{{.spec.host}}')
 TEMPLATE_FILE="$SCRIPT_DIR/templates/github.json"
 WEBHOOK_SECRET=secret
 
 UI_NAME=greeting-ui
-UI_COMMIT=3af181b11e626881607a058861df6a675ba6f597
+UI_COMMIT=5366acdd375c9751348c35d5820f7e920bf2db9d
 
 API_NAME=greeting-api
-API_COMMIT=873c59793302c8773af49aaf1adfb3146aceceea
+API_COMMIT=30dcc951ec76c952a9590463dfd0aad133aeb830
 
 case "${1:-ui}" in
   ui)

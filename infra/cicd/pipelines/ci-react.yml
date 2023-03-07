@@ -56,10 +56,10 @@ spec:
       default: latest
       description: Tag of the container image to publish.
 
-    - name: dockerfile
+    - name: containerfile
       type: string
       default: ./Containerfile
-      description: Path to the Dockerfile to build.
+      description: Path to the Containerfile to build. Compatible with Dockerfile.
 
     - name: k8s-git-url
       type: string
@@ -77,7 +77,7 @@ spec:
 
     - name: nodejs-image
       type: string
-      default: registry.access.redhat.com/ubi8/nodejs-16
+      default: registry.access.redhat.com/ubi9/nodejs-18
       description: The image to use for NodeJS tasks.
 
   workspaces:
@@ -88,23 +88,10 @@ spec:
       description: A workspace to hold the kustomize repository for the application.
 
   tasks:
-    - name: clean
-      taskRef:
-        name: script-1001
-      workspaces:
-        - name: workspace
-          workspace: source
-      params:
-        - name: script
-          value: rm -rf node_modules
-        - name: workingDir
-          value: $(workspaces.workspace.path)
-
     - name: clone
       taskRef:
         name: git-clone
         kind: ClusterTask
-      runAfter: ['clean']
       workspaces:
         - name: output
           workspace: source
@@ -150,7 +137,7 @@ spec:
           workspace: source
       params:
         - name: DOCKERFILE
-          value: ./Containerfile
+          value: $(params.containerfile)
         - name: IMAGE
           value: $(params.image-url):$(params.image-tag)
 

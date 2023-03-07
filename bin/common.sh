@@ -2,8 +2,9 @@
 set -o pipefail
 
 PROJECT_DIR="$(realpath "$SCRIPT_DIR/../")"
-TASKS_DIR="$PROJECT_DIR/cicd/tasks"
-PIPELINES_DIR="$PROJECT_DIR/cicd/pipelines"
+CICD_DIR="$PROJECT_DIR/cicd"
+TASKS_DIR="$CICD_DIR/tasks"
+PIPELINES_DIR="$CICD/pipelines"
 
 print_params() {
   local file="$1"; shift

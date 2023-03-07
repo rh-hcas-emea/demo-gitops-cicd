@@ -16,3 +16,7 @@ spec:
           - ApplyOutOfSyncOnly=true
         retry:
           limit: 3
+          backoff:
+            duration: 5s    # the amount to back off
+            factor: 2       # factor to multiply the base duration after each failed retry
+            maxDuration: 3m # the maximum amount of time allowed for the backoff strategy

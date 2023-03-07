@@ -29,11 +29,9 @@ spec:
         The directory within which the kustomization file is located.
         Should be relative to the `source` workspace.
 
-    # Note: for most people the default should be `kustomization.yaml`
-    #       I just have a preference for `.yml`
     - name: filename
       type: string
-      default: kustomization.yml
+      default: kustomization.yaml
       description: The filename of the kustomization file.
 
     - name: yq-image

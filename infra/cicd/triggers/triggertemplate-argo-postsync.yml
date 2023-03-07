@@ -18,12 +18,14 @@ spec:
         pipelineRef:
           name: argo-postsync
         params:
+          - name: app-name
+            value: $(tt.params.app-name)
           - name: image-url
-            value: quay.io/tstockwell/$(tt.params.app-name)
+            value: quay.io/rh-hcas-emea/$(tt.params.app-name)
           - name: git-url
-            value: https://github.com/tom-stockwell/$(tt.params.app-name)-k8s.git
+            value: https://github.com/rh-hcas-emea/greeting-app-k8s.git
           - name: git-repo-full-name
-            value: tom-stockwell/$(tt.params.app-name)-k8s
+            value: rh-hcas-emea/greeting-app-k8s
           - name: environment
             value: $(tt.params.environment)
           - name: github-token-secret-key

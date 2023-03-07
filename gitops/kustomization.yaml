@@ -3,4 +3,4 @@ kind: Kustomization
 namespace: demo-gitops
 resources:
 - greeting-app
-- infra
+#- infra

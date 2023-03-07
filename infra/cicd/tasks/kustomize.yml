@@ -20,7 +20,7 @@ spec:
 
     - name: kustomize-image
       type: string
-      default: k8s.gcr.io/kustomize/kustomize:v4.5.5
+      default: k8s.gcr.io/kustomize/kustomize:v5.0.0
       description: The image used to run kustomize.
 
   workspaces:

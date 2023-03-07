@@ -23,9 +23,12 @@ spec:
           - name: git-revision
             value: $(tt.params.git-revision)
           - name: image-url
-            value: quay.io/tstockwell/$(tt.params.git-repo-name)
+            value: quay.io/rh-hcas-emea/$(tt.params.git-repo-name)
           - name: k8s-git-url
-            value: https://github.com/tom-stockwell/$(tt.params.git-repo-name)-k8s.git
+            value: https://github.com/rh-hcas-emea/greeting-app-k8s.git
+          - name: overlay-path
+            value: overlays/dev/$(tt.params.git-repo-name)
+
         workspaces:
           - name: source
             persistentVolumeClaim:

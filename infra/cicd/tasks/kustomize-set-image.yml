@@ -33,7 +33,7 @@ spec:
 
     - name: git-email
       type: string
-      default: 101870882+stocky37-robot@users.noreply.github.com
+      default: ci@example.com
       description: The email of the git committer.
 
     - name: git-message
@@ -44,7 +44,7 @@ spec:
     # step images
     - name: kustomize-image
       type: string
-      default: k8s.gcr.io/kustomize/kustomize:v4.5.5
+      default: k8s.gcr.io/kustomize/kustomize:v5.0.0
       description: The image used to run kustomize.
 
     - name: git-image
@@ -71,6 +71,7 @@ spec:
         #!/usr/bin/env sh
         set -eux
         pwd
+        ls -la
         kustomize edit set image "$IMAGE"
 
     # primarily copied from the git-cli ClusterTask

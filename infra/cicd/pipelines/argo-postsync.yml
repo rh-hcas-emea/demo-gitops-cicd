@@ -40,6 +40,10 @@ spec:
     [^1]: These tasks have yet to be implemented and are currently placeholders.
 
   params:
+    - name: app-name
+      type: string
+      description: Name of the application.
+
     - name: image-url
       type: string
       description: >-
@@ -179,7 +183,7 @@ spec:
         - name: image-name
           value: $(params.image-url)
         - name: path
-          value: $(params.overlays-path)/$(params.environment)
+          value: $(params.overlays-path)/$(params.environment)/$(params.app-name)
 
     - name: truncate-digest
       taskRef:
@@ -236,11 +240,11 @@ spec:
         - name: image-url
           value: $(params.image-url)@$(tasks.get-digest.results.digest)
         - name: path
-          value: $(params.overlays-path)/$(tasks.next-env.results.next)
+          value: $(params.overlays-path)/$(tasks.next-env.results.next)/$(params.app-name)
         - name: git-branch
           value: $(tasks.get-branch.results.output)
         - name: git-message
-          value: &msg Promote $(tasks.truncate-digest.results.output) to $(tasks.next-env.results.next)
+          value: &msg Promote $(params.app-name)@$(tasks.truncate-digest.results.output) to $(tasks.next-env.results.next)
 
     - name: open-pr
       taskRef:
