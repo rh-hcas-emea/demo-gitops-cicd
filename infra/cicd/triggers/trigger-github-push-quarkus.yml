@@ -6,6 +6,7 @@ spec:
   interceptors:
     - ref:
         name: github
+        kind: ClusterInterceptor
       params:
         - name: secretRef
           value:
@@ -15,6 +16,7 @@ spec:
           value: ["push"]
     - ref:
         name: cel
+        kind: ClusterInterceptor
       params:
         - name: "filter"
           value: >-
